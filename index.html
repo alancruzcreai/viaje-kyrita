@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El viaje de Kyrita — Eurotrip 2025</title>
+<style>
+  :root {
+    --bg: #F3F3F3;
+    --bg-secondary: #EAEAEA;
+    --text: #000000;
+    --text-secondary: #B8B8B8;
+    --btn-active-bg: #0D0D0D;
+    --btn-active-text: #FFFFFF;
+    --btn-border: #000000;
+    --btn-text: #000000;
+    --lightbox-bg: rgba(0,0,0,0.92);
+    --glass-bg: rgba(243,243,243,0.72);
+    --glass-border: rgba(255,255,255,0.4);
+    --glass-shadow: rgba(0,0,0,0.06);
+    --map-land: #E0E0E0;
+    --map-visited: #D0D0D0;
+    --map-water: #F3F3F3;
+    --pin-active: #000000;
+    --pin-inactive: #CCCCCC;
+    --route-color: #000000;
+  }
+  html.dark {
+    --bg: #0D0D0D;
+    --bg-secondary: #1A1A1A;
+    --text: #FFFFFF;
+    --text-secondary: #555555;
+    --btn-active-bg: #FFFFFF;
+    --btn-active-text: #0D0D0D;
+    --btn-border: rgba(255,255,255,0.3);
+    --btn-text: #FFFFFF;
+    --lightbox-bg: rgba(0,0,0,0.96);
+    --glass-bg: rgba(13,13,13,0.65);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-shadow: rgba(0,0,0,0.3);
+    --map-land: #1F1F1F;
+    --map-visited: #2A2A2A;
+    --map-water: #0D0D0D;
+    --pin-active: #FFFFFF;
+    --pin-inactive: #444444;
+    --route-color: #FFFFFF;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    transition: background 0.6s cubic-bezier(0.4,0,0.2,1), color 0.6s cubic-bezier(0.4,0,0.2,1);
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-bottom: 120px;
+  }
+
+  /* ─── HEADER (removed, now in glass bar) ─── */
+
+  /* ─── JOURNEY MAP (Globe) ─── */
+  .journey-map {
+    padding: 40px 54px 20px 54px;
+    position: relative;
+    overflow: visible;
+    transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease, padding 0.5s ease;
+    opacity: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .journey-map.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .globe-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 620px;
+  }
+
+  .globe {
+    width: 580px;
+    height: 580px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at 40% 35%, #F0EDE8 0%, #E0DCD5 40%, #D2CEC6 70%, #C8C4BC 100%);
+    box-shadow:
+      inset -25px -25px 50px rgba(0,0,0,0.06),
+      inset 15px 15px 30px rgba(255,255,255,0.5),
+      0 20px 60px rgba(0,0,0,0.12);
+    flex-shrink: 0;
+  }
+  .globe::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.45) 0%, transparent 45%),
+                radial-gradient(circle at 70% 75%, rgba(0,0,0,0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .globe svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .globe .dot-land {
+    fill: #B8B4AC;
+    transition: fill 0.5s ease;
+  }
+  .globe .dot-land-visited {
+    fill: #6B6760;
+    transition: fill 0.5s ease;
+  }
+
+  html.dark .globe {
+    background: radial-gradient(circle at 40% 35%, #2A2826 0%, #222120 40%, #1A1918 70%, #141312 100%);
+    box-shadow:
+      inset -25px -25px 50px rgba(0,0,0,0.3),
+      inset 15px 15px 30px rgba(255,255,255,0.02),
+      0 20px 60px rgba(0,0,0,0.4);
+  }
+  html.dark .globe .dot-land { fill: #4A4744; }
+  html.dark .globe .dot-land-visited { fill: #9A9690; }
+
+  /* Globe pins */
+  .globe-pin {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    z-index: 3;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform: translate(-50%, -50%);
+  }
+  .globe-pin:hover { transform: translate(-50%, -50%) scale(1.15); }
+  .globe-pin.inactive { opacity: 0.35; }
+  .globe-pin-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3A3A38;
+    flex-shrink: 0;
+  }
+  .globe-pin-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #3A3A38;
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .globe-pin-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #5A5A58;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    flex-shrink: 0;
+  }
+  .globe-pin-count {
+    font-variant-numeric: tabular-nums;
+  }
+
+  html.dark .globe-pin-dot { background: #D0D0CE; }
+  html.dark .globe-pin-label { background: #D0D0CE; color: #1A1A18; }
+  html.dark .globe-pin-icon { background: #A0A09E; }
+
+  /* Route line inside SVG */
+  .map-route {
+    fill: none;
+    stroke: #4A4640;
+    stroke-width: 1.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 2000;
+    stroke-dashoffset: 2000;
+    opacity: 0.3;
+  }
+  html.dark .map-route { stroke: #A09A90; }
+  .map-route.animate {
+    animation: drawRoute 2.5s cubic-bezier(0.4,0,0.2,1) forwards;
+  }
+  @keyframes drawRoute {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Map popup */
+  .map-popup {
+    position: absolute;
+    width: 220px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    pointer-events: none;
+    z-index: 50;
+  }
+  .map-popup.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: all;
+  }
+  .map-popup-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+  }
+  .map-popup-body {
+    padding: 12px 14px;
+  }
+  .map-popup-city {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    transition: color 0.5s ease;
+  }
+  .map-popup-date {
+    font-weight: 300;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.5s ease;
+  }
+  .map-popup-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  .map-popup-btn:hover { opacity: 0.8; }
+
+  /* Map tooltip */
+  .map-tooltip {
+    position: absolute;
+    padding: 4px 10px;
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    z-index: 40;
+  }
+  .map-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── FLOATING GLASS BAR ─── */
+  .months-float {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    padding: 16px 54px;
+    pointer-events: none;
+  }
+  .months-glass {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 38px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 30px var(--glass-shadow), 0 1px 3px var(--glass-shadow);
+    pointer-events: all;
+    transition: background 0.6s ease, border 0.6s ease, box-shadow 0.6s ease;
+  }
+  /* Profile section in glass bar */
+  .bar-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 0 4px;
+    flex-shrink: 0;
+  }
+  .bar-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .bar-titles {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+  }
+  .bar-title-main {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    transition: color 0.5s ease;
+  }
+  .bar-title-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .bar-title-sub {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.02em;
+    color: var(--text-secondary);
+    transition: color 0.5s ease;
+  }
+  .month-btn {
+    padding: 0 20px;
+    height: 42px;
+    border-radius: 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.45s cubic-bezier(0.4,0,0.2,1);
+    text-transform: uppercase;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .month-btn:hover { color: var(--text); }
+  .month-btn.active {
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+  }
+  .month-icon { display: inline-flex; align-items: center; vertical-align: middle; }
+  .month-icon svg { display: block; }
+  .glass-sep {
+    width: 1px;
+    height: 28px;
+    background: var(--glass-border);
+    margin: 0 4px;
+    flex-shrink: 0;
+    transition: background 0.5s ease;
+  }
+  .glass-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    flex-shrink: 0;
+  }
+  .glass-btn:hover {
+    color: var(--text);
+    background: rgba(128,128,128,0.1);
+  }
+  .glass-btn.active-toggle {
+    color: var(--text);
+  }
+  .glass-btn svg {
+    width: 18px; height: 18px;
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ─── CITIES FLOW ─── */
+  .cities-flow {
+    padding: 30px 54px 0 54px;
+  }
+  .city-row { overflow: hidden; }
+  .city-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .city-name {
+    font-weight: 700;
+    font-size: 78px;
+    letter-spacing: -0.05em;
+    color: var(--text-secondary);
+    transition: color 0.5s cubic-bezier(0.4,0,0.2,1);
+    white-space: nowrap;
+    user-select: none;
+    line-height: 1.05;
+  }
+  .city-name:hover { color: var(--text); }
+  .city-name.active { color: var(--text); }
+  .city-separator {
+    font-weight: 200;
+    font-size: 78px;
+    letter-spacing: -0.05em;
+    color: var(--text-secondary);
+    padding: 0 12px;
+    user-select: none;
+    transition: color 0.5s ease;
+    line-height: 1.05;
+  }
+
+  /* ─── CITY INFO (mini-map + fun facts) ─── */
+  .city-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 0 20px 0;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 16px;
+    transition: border-color 0.5s ease;
+  }
+  .city-info-map {
+    flex-shrink: 0;
+    width: 110px;
+    height: 110px;
+    border-radius: 16px;
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: background 0.5s ease;
+  }
+  .city-info-map svg {
+    width: 96px;
+    height: 96px;
+  }
+  html.dark .city-info-map svg path[fill="#D0CEC8"] { fill: #3A3836; }
+  html.dark .city-info-map svg path[fill="#1A1A1A"] { fill: #E0E0DE; }
+  .city-info-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .city-info-country {
+    font-weight: 700;
+    font-size: 35px;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 2px;
+    transition: color 0.5s ease;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+  .city-info-facts {
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: -0.05em;
+    line-height: 1.35;
+    color: #B6B6B6;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    transition: color 0.5s ease;
+  }
+
+  /* ─── INLINE GRID ─── */
+  .city-grid-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease, padding 0.5s ease;
+    opacity: 0;
+    padding: 0;
+  }
+  .city-row.expanded .city-grid-wrapper {
+    opacity: 1;
+    padding: 20px 0 30px 0;
+  }
+  .city-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+  .grid-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    background: var(--bg-secondary);
+  }
+  .grid-item.revealed {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  .grid-item:hover { transform: scale(1.03); z-index: 2; }
+  .grid-item:hover::after { opacity: 1; }
+  .grid-item::after {
+    content: '';
+    position: absolute; inset: 0;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .grid-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .grid-item:hover img { transform: scale(1.06); }
+  .video-badge {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 48px; height: 48px;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    transition: all 0.4s ease;
+  }
+  .grid-item:hover .video-badge {
+    background: rgba(0,0,0,0.65);
+    transform: translate(-50%,-50%) scale(1.1);
+  }
+  .video-badge::after {
+    content: '';
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 8px 0 8px 14px;
+    border-color: transparent transparent transparent white;
+    margin-left: 3px;
+  }
+
+  /* ─── LIGHTBOX ─── */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--lightbox-bg);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+  .lightbox.open { opacity: 1; pointer-events: all; }
+  .lightbox-content {
+    max-width: 90vw; max-height: 85vh;
+    transform: scale(0.92);
+    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+    border-radius: 8px; overflow: hidden;
+  }
+  .lightbox.open .lightbox-content { transform: scale(1); }
+  .lightbox-content img {
+    max-width: 90vw; max-height: 85vh;
+    object-fit: contain; display: block; border-radius: 8px;
+  }
+  .lightbox-content iframe {
+    width: 80vw; height: 80vh;
+    border: none; border-radius: 8px;
+  }
+  .lightbox-close {
+    position: absolute; top: 24px; right: 32px;
+    width: 44px; height: 44px;
+    border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.1);
+    color: white; font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+  .lightbox-close:hover { background: rgba(255,255,255,0.25); transform: rotate(90deg); }
+  .lightbox-nav {
+    position: absolute; top: 50%;
+    transform: translateY(-50%);
+    width: 56px; height: 56px;
+    border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.08);
+    color: white; font-size: 24px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+  }
+  .lightbox-nav:hover { background: rgba(255,255,255,0.2); }
+  .lightbox-prev { left: 24px; }
+  .lightbox-next { right: 24px; }
+  .lightbox-counter {
+    position: absolute; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.5);
+    font-size: 13px; font-weight: 300; letter-spacing: 0.1em;
+  }
+
+  /* ─── SHIMMER ─── */
+  .grid-item.loading-placeholder {
+    background: var(--bg-secondary);
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:0.8} }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width:1200px) {
+    .city-name,.city-separator { font-size:56px; }
+    .city-grid { grid-template-columns: repeat(4,1fr); }
+    .globe { width: 460px; height: 460px; }
+  }
+  @media (max-width:768px) {
+    .cities-flow { padding-left:24px; padding-right:24px; }
+    .months-float { padding-left:12px; padding-right:12px; }
+    .journey-map { padding-left:24px; padding-right:24px; }
+    .city-name,.city-separator { font-size:36px; }
+    .city-grid { grid-template-columns: repeat(3,1fr); }
+    .month-btn { padding:0 16px; height:40px; font-size:11px; }
+    .months-glass { padding:4px; border-radius:30px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .bar-title-main { font-size:12px; }
+    .bar-title-sub { font-size:12px; }
+    .bar-avatar { width:32px; height:32px; }
+    .bar-profile { gap:8px; }
+    .city-info { flex-direction: column; }
+    .globe { width: 320px; height: 320px; }
+    .globe-pin-label { font-size: 9px; padding: 3px 7px; }
+    .globe-pin-dot { width: 6px; height: 6px; }
+  }
+  @media (max-width:480px) {
+    .globe { width: 260px; height: 260px; }
+    .bar-titles { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating glass bar (now at top, first thing visible) -->
+<div class="months-float" id="monthsFloat">
+  <div class="months-glass" id="monthsGlass"></div>
+</div>
+
+<!-- Journey Map (Globe) -->
+<div class="journey-map collapsed" id="journeyMap">
+  <div class="globe-container" id="globeContainer">
+    <div class="globe" id="globe">
+      <svg viewBox="350 100 380 380" xmlns="http://www.w3.org/2000/svg">
+        <!-- Dot matrix continents rendered by JS -->
+        <g id="dotMatrix"></g>
+        <!-- Route line -->
+        <polyline id="routeLine" class="map-route" points=""/>
+      </svg>
+      <!-- Pins rendered by JS (HTML divs over the globe) -->
+      <div id="mapPins"></div>
+    </div>
+  </div>
+  <!-- Popup container -->
+  <div class="map-popup" id="mapPopup">
+    <img class="map-popup-img" id="popupImg" src="" alt="">
+    <div class="map-popup-body">
+      <div class="map-popup-city" id="popupCity"></div>
+      <div class="map-popup-date" id="popupDate"></div>
+      <button class="map-popup-btn" id="popupBtn">Ver fotos</button>
+    </div>
+  </div>
+  <!-- Tooltip -->
+  <div class="map-tooltip" id="mapTooltip"></div>
+</div>
+
+<!-- Cities -->
+<div class="cities-flow" id="citiesFlow"></div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lbClose">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lbPrev">&#8249;</button>
+  <button class="lightbox-nav lightbox-next" id="lbNext">&#8250;</button>
+  <div class="lightbox-content" id="lbContent"></div>
+  <div class="lightbox-counter" id="lbCounter"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const DATA = {
+  "Octubre": {
+    "Amsterdam": { date:"13 oct", files:[
+      {id:"1yy_RtENZMwGPGm14cy71C9ZT0SzLY6XR",t:"I"},{id:"1cu6UqTnnFJjapgoS2n_5t4G7M6zmlB84",t:"V"},{id:"1QEA3brtdB-3v46BDPEsLJ3Qo8MwggpiL",t:"V"},{id:"19DPTlTCP95sb2WgNLCeWG2-5vmqWd5XM",t:"I"},{id:"1oOGxGf4k1FQxQo0wStCDTtGbALfxQbW6",t:"I"},{id:"1xxDYBTJZArNifzN1TVXXnjJiGK_kvoka",t:"I"},{id:"1isHUUhfYqqVOGsXBXAmUP3lyRl5wX8nz",t:"V"},{id:"1m1oAuJPcBA9skIZh5_DZegXJD6chimhm",t:"V"},{id:"1xDkm9f3APGYUZEpCgrYcBuNZm-wtpADk",t:"V"},{id:"1L3FBJIVJhfF7Qd1d2MGnnV1G2ei2-MYA",t:"V"},{id:"10ZhrVCzR2X-VKhT7rQOfQ0MaZMmGkvDo",t:"V"},{id:"1sCzTYe6vjUV3bmh8ySeM0Lh65HCc_yxq",t:"V"},{id:"1FAsvdLbMS5WR4U43hpEi13w6XMNt-OlY",t:"I"},{id:"1GvJe2pR1tWxhSogSuSCYvcSJagSuaAoH",t:"V"}
+    ]},
+    "Brujas": { date:"17 oct", files:[
+      {id:"1k1_VN44lbALINYatlJvOFD84syfFe9e3",t:"V"},{id:"16O5EIKiWqkLRXCKFM2XfCjpV6DbJwv9Z",t:"V"},{id:"1DtVTW26cvn6n4oNgaGGAoeiHPQjeHwfN",t:"I"},{id:"1zRikdQn10pXkP5ZA0J1bFqt7Y4Vii0ux",t:"I"},{id:"1lIPYrG6SCAnFEVbd_lDPo8QngnG0xZoN",t:"V"},{id:"13KXH5xCbM_4BG7VvcHEOHnYMyE8TFEm8",t:"I"},{id:"1jR0Zm9PvLCnvXEXt2dGoP93iF1lWTJZT",t:"I"},{id:"1K2xg2-Y-ZnGLBGP9Dt3ODUOOzkg7Q-tI",t:"I"},{id:"1TMpi3-3rpGPRe-_rpmSTYXe_Bz3wgqru",t:"I"},{id:"1C9cUoD56O_4mfnwiCZbZPc-aYmiuV73j",t:"I"},{id:"17UKUGdpb2qXCStzkV_OvR5oe9ucICdt4",t:"I"},{id:"1bAHR8BJdjka4Eysg9BxmspbMdvQH8vmA",t:"I"},{id:"12wuFnbNojAf65jVMlNf-kwwezGB9AhV3",t:"V"},{id:"1enileWOdJZ6YU9YYD44Kx1hOiM9rIlAN",t:"I"},{id:"1J7DWG4XFBzu4XA0KEmLyVeC7GYi-v_WO",t:"V"},{id:"1F5JFUh13w_sTFLS658zJk746vBbQOvlW",t:"I"},{id:"1ZY0UNRhxrdO6RDfM0pd_1L_UzIbeLGPA",t:"I"},{id:"1l7gaBamHo6XvCvTScn_mgZ0jMyf_eFrX",t:"I"},{id:"1BwWQ7XFzA2DsLBbDTRMbrv_eSaDxvxze",t:"V"},{id:"161gK9lLhOtYUBLth5Eno8S4XIu3uE5Eo",t:"I"}
+    ]},
+    "Bruselas": { date:"19 oct", files:[
+      {id:"1DO_iNufa5VTFLE3kOJirhmoYEixu0b6B",t:"I"},{id:"1afiYUi72h-D1-QsmtA0q8_Vkj-eWZi1U",t:"V"},{id:"1ySf7aqJ733ZmYvYBADdE0CtwwqhGCUal",t:"I"},{id:"1s-Q6-pRmbSxVLKoodvnSG8viS0sE81Ia",t:"I"},{id:"1dggeGGvQTXJq8hTjSP0MMY7_jxsJ77TU",t:"I"},{id:"1UUilk_VMhH35elGVEhIUaDp_dlJvG7DW",t:"V"},{id:"1tVgVXdnxqAg_NEmy8JbxXSCT6Qp5L0YN",t:"I"},{id:"1MFROdHH4NKdLy2SQH9MvONuN18QnOdtC",t:"I"},{id:"1eQkrO8lkmvRLP6GGkxhojbTwZbg-TbbK",t:"I"},{id:"1w9lgQCFnKqx9YrWI6NKzx1yQizmriTgJ",t:"I"},{id:"1t00bBnFvImnFOtf7GcVDRdIVN0un7MjV",t:"I"},{id:"1wQbC2sppiEKACCUgbHItuDknGoOlyIjV",t:"I"},{id:"140iekbgSpRsX-3SWQp0mRfOh3pJ2dN1z",t:"I"},{id:"1trVVR6OreGEmyQlpcbx-33R4VMJyryFc",t:"I"}
+    ]},
+    "Paris": { date:"21 oct", files:[
+      {id:"1JhzprfWCI5TT0lfAK7ZoBYNfYIfTHEPb",t:"V"},{id:"1ubrtyjWAaB_HQeQmesksT2izhOZDc3dS",t:"V"},{id:"1Ku0fF-M1hjuOt3G_-oW6GWUsEzgyIUQF",t:"V"},{id:"1hJZ-ff3hCiAg6zqDgQBkc4-brjXx-OzK",t:"I"},{id:"1LxEqmoJwVxbhtuupYWuf6yuws3SWl5Ka",t:"V"},{id:"1SBotpEpDb8bXeJwsx77FIvPwKldPStP3",t:"I"},{id:"14V_iPuOIYZU5fvy9QBc2BLOOUddyFPTV",t:"V"},{id:"1fm_YjUgmGfGYlkKGDGYYEhdSn2CHPRVO",t:"I"},{id:"1NjABHvdjrbSE874pyBIO3VBx86oXep_w",t:"V"},{id:"1DGEwXkGtX5L8WC-0KyEHzkmv4NrwaTNZ",t:"I"},{id:"1AycPrOhvLB8so7foP--Lk6xaQJ5Vaob_",t:"I"},{id:"145PLJtoOSvWebTz5Er0YFbbi2iYYPIlx",t:"I"},{id:"1LQTItczI3JisVRfacrKjcOcZ8wElAQDs",t:"I"},{id:"1M-O5WYUmy-yNJ3ycjYjm1mBZ9cs0hz4o",t:"V"},{id:"1zE5gOJlcOts7bcu-SerrLIoQrn0lQvMr",t:"I"},{id:"1K0HAv-CT03tTbBc4MViXW6WH_nDdlgl5",t:"I"},{id:"1mtwnQ3m7YHN7aqjFQYKEqX1UiubyHXNB",t:"V"},{id:"12Bt4VpQNt9XFBcherXkIThcLCQ4xC_IV",t:"I"},{id:"1JMeHYwzelkFCeHe34DrgtUEBfK5xZXti",t:"V"},{id:"1GtatTOPaCHQOuHW8nEBz9QsKK_j4XhxK",t:"V"},{id:"1ReaymIWYoVuG7HE9qZdyVKhS-UtpTOkg",t:"I"},{id:"1nUZ9OpImqt7NtszwN9fiZ8sMO0V5mB-n",t:"V"},{id:"1C4WF354hWITzKwBsd8XYd08sAqV45zV3",t:"V"},{id:"1ld7LH-r4UauZ2FFzoiKzi03vIyoru7Hz",t:"I"},{id:"1ubIBKvv529eNq4jKq96C4dYHbs7MqfUP",t:"V"},{id:"1vdZddR9tPpUURQt0CndI3cFDlPdxapqL",t:"I"},{id:"1lcNSrFBGVljz-bq4MrlGuoip3EQ2Br7_",t:"I"},{id:"1M7dwrAs5ut07n9LkD6XWiMRDtSaIVrY-",t:"I"},{id:"105nXCqZg35fsABCKHjNSc1IRaBkAGEc3",t:"V"},{id:"1zuwxsnvzc6Z1DWX5wRCcEnsbsAKraJvi",t:"I"},{id:"1QwjdA-tfuPSk-mXTnh3RSCQYXUa7r2x8",t:"I"},{id:"1cPDhp64B9awbd0ekFcHkHqIK5PykYald",t:"I"},{id:"1dmuO5DCowW2t_XYdizggaQaVVuLmpAQf",t:"I"},{id:"1Ay_CVa_F7KwlxsRo1151oktPLVwb3h7l",t:"I"},{id:"10P_9v0TAztnmFJPYCG9fDO4YhzX4Ysqy",t:"I"},{id:"1rrp5-2y4WonYRazNRx6dC-E_tqEk1uxI",t:"I"},{id:"1zovrRUeY1I4jXt9aoFppTRZIHeEuTeHE",t:"I"},{id:"10vGmqXjqNtWR5S6rbFoHgoCUIVXrmiiD",t:"I"},{id:"1OUT2mtJ8q1STBNYLV9htO2CyW_b3445-",t:"I"},{id:"1vCATj-HpM7KEoTs0D90Xw_rPtCmMIoaZ",t:"I"},{id:"1Tkx0O7xwwbhucW_DirFqD8194LsBI2hA",t:"I"},{id:"11W0uTGlL2KytDyCy0K4pzt7U4hg7ooPv",t:"I"},{id:"1FpgFvKr9OAqQzenCClm6QfDCegg7lbXV",t:"V"},{id:"1gtEk43AxYwyE9VFZuTrprRQdJLBGpzk7",t:"I"},{id:"1seX1VP3K7SiLvVlRk53Mnb-VrV208wnn",t:"I"},{id:"1OQmJy4kHePmuKyN0O4PCMWnfjJ45Aq0B",t:"I"},{id:"1xWH1VJyPN6GJuOG554FvAi6XtEURLKl9",t:"I"},{id:"1Pj_S0CtXQuBMZh5Hv8CZ8lCoN_9GTD_C",t:"I"},{id:"1r4MtkTTEvRBn9PD0PIiK6i8_PTP8Um65",t:"V"},{id:"1GP3lWB9rkZEsItqNxx2H5QI0TPmPRKoO",t:"I"}
+    ]},
+    "Ginebra": { date:"26 oct", files:[
+      {id:"1fxpSzCPnRrxcvRvMYWUrYKGm0uqtm-UU",t:"I"},{id:"1W3i9GtKC3V2ryA8qjTa4QSf8hanS24Q1",t:"I"},{id:"1btw-U6nsz31x0J48i0zMvJIMdxo_HVKa",t:"I"},{id:"1LJVgyCsx8H_I-ZaFbG0tif02VyKmWD-Z",t:"I"},{id:"1ldavALYYUSRaPYo8nDFmr0l1LxU1KoAK",t:"I"},{id:"15nJr6VmVOMX0WzRj1VkKQhhw4xrk1GtZ",t:"I"},{id:"1b2W_9GtY7W9KoLcQ7wXs_5xBdoymUFMs",t:"I"},{id:"1LSo6tzUwCR_k19a737IVHYohjbKte2h4",t:"I"},{id:"1veB5jcf1yEc3VCuNBAq27OPWVuuO8g20",t:"I"},{id:"1YboGK7DJRnuuEXK3QaCWwQh_hs_1CDIp",t:"I"},{id:"1S3G5R1JYiajySdNQMfe0_xUGY2Qmt3XU",t:"I"},{id:"1_Wq1CSFIY_-PrL3kqUs4iOJg4LzV28G5",t:"I"},{id:"15nLr-JdS7kgdRAt65PB9z9ln8RWoida6",t:"I"},{id:"1rWwzq_SaB6qwYq9WeVyyU2DsC7TqLYex",t:"I"},{id:"1aht8xuOG8lAmJQ_mqJm7kC6bu9T2tzDG",t:"I"},{id:"12IhWTm_zDjtnpCcFzJ6x9hlnKF_VfAYv",t:"I"},{id:"1XCkzm7nYCdsEUblF2KfRkUurQ4nvTt_r",t:"I"},{id:"1pqaEctdKzwvpdzPsV5HLR4FrrMBLAjvo",t:"I"},{id:"1Qvcw5LyKE_bFBlSacXhWUyehqBOU4Pc5",t:"V"},{id:"1bLv8-WGMbyGGp7Y852IV2BlXCcy5EA1A",t:"I"},{id:"1H2le_XNjvueyLMC3soeTHxSnzySCTNJT",t:"V"},{id:"171WppPH0AgQSLcrfhpGDAIIY_TYT-vtB",t:"I"},{id:"1MH8-JUUaakER7BuGbSoOFvaA2yDamYjf",t:"I"},{id:"1x23l0F8WNb4dN9iKZF9eL5G4vtRlLHe8",t:"I"},{id:"1o_fv9jY-Xv7njBezNI9iD3m8--WB-nOZ",t:"I"},{id:"17-cN985L8b3cpf406lmUjxWpjAwVYrIS",t:"I"},{id:"1zavilKv-YCP2BWM8M9RQzWmniYV9Ott8",t:"I"},{id:"1HsIXDoq1P52go09Xv0Hucn2WIMCrRefT",t:"I"},{id:"1AHH8ICk2tXSX2zi7-PPGmnmR3ywCeSiT",t:"I"},{id:"1xpxqY_0vq8cBJKBtVOzoWnN1X9DnW8ET",t:"I"},{id:"1gdgbUj13wC4MZ4oOqKGJjE_ik9rKU4K1",t:"V"},{id:"1v4ZF0V0YSmKnhh-BgPChOxNbskIYy6pj",t:"I"},{id:"1h-xkXJumyi_JStjGj1cIu-fJRMti51Vf",t:"V"},{id:"1TTRzMAGp_Wxwdxc785yeCvX8H2PGCkVr",t:"I"},{id:"1UyDqC3izducy1AAEoVxqn43AP00Ridsw",t:"V"},{id:"1Ykw_3Hhi5m2iN154E6kbsQTtPm76JQAR",t:"I"},{id:"1MOP5ue8zi8OQoNzPBe4I-L1jWxD2jfYg",t:"I"},{id:"1EcHftG_IpMAcjatg5Rn4rV4iZ9y3wkym",t:"I"},{id:"1ZHYN_PyMwPQsqX7PoOA5YxzWfrtrenD7",t:"I"},{id:"1SuiKP0sbFO_JlK8HtsxyCopowVEpW1i0",t:"I"},{id:"1KUQWYqjhtLrLMCNM5555bMk50xcKHEes",t:"V"},{id:"15ecGRI9oPWdcwHj0728LEgkdRvC2GLqx",t:"V"},{id:"16sdShSTTH-BRsHbK92HnYeNgCvdLAbkF",t:"I"},{id:"1YE_lXpIwyLMUIaZ5MOwdQJ7xWrv4ttpw",t:"I"},{id:"13QYj-U6X30R5BBWcuynS22msNr53SJRx",t:"I"},{id:"1I4PAEm1QYldOfZvdxpFa_xDKQLDW5e49",t:"I"},{id:"1ov2rJpNHKp5eUsfwIi2RfhLx4nA4bL2_",t:"I"},{id:"1XCxFDPtVfVXGqE5l61XcAmOD61Hetfcd",t:"I"},{id:"1y3nkoqzr1GbmWHRCoH3yQxiV2z32dYOy",t:"I"},{id:"1n6G20z0JX722AMcJTvXO7ejHu3ggVUsk",t:"I"}
+    ]},
+    "Genova": { date:"29 oct", files:[
+      {id:"1JXsFxfM2qxju2hqD23SFTYAlY82x6Jni",t:"I"},{id:"1qEuIq6VNFoGFfUNPO-zsd_MTB7qg1Kdx",t:"V"},{id:"1hAwxf0Sw4Uu6ts8ut2zinosOafzN5kWi",t:"I"},{id:"1NKkl0TwyALCab87P2btkTaIQ1Nj7CRHg",t:"I"},{id:"1u56wfSpEpRDEnbGLyMZP-jy1yg4nQbmv",t:"I"},{id:"1DEfFyWCcDwfvHgUw5SEdBP-opIvkFNnJ",t:"V"},{id:"1rbeYpDa5XwIIJAZffz1M6f3dc-apTuGF",t:"V"},{id:"1D2TCtteuwnkMzTHwqQV8jf5dgcxgp4VQ",t:"I"},{id:"1RgF3I-Rsh03oNS2IGhbz9eLN9uziDyx-",t:"I"},{id:"1abzpaBnxRZnh7Aexb0B4F_Tz40SeJEBQ",t:"I"},{id:"1mEepfW9U-POlIKUPcujjI5T-8tW_nSHq",t:"I"},{id:"1agJTwqklnubUGRnpLzfxhVoJgSMmv4lZ",t:"V"},{id:"1nIcYh9yqa87E1LtKCVBN4_yFgA3729Jp",t:"I"},{id:"11n6HMn8neROrvukAdzWNYjN7T1tiQ5Tr",t:"I"},{id:"1KtAvxBFubh4sDv49mjCHJDXAxxXuKJZZ",t:"I"},{id:"1mATwNA7U67VP-ft-wP5NL21b4znYmuDI",t:"I"},{id:"1ikN1QemUMmznMDwXIUoqWjqsrLZZ9DDG",t:"I"},{id:"1-suS7gaQgt5I2Ve4cCgfLZsVfJCG41NR",t:"I"},{id:"1DQWo4tVOa4tX6IOruWq-jodCTpxNvZp1",t:"I"},{id:"18gjiaPNihc0aAdmV5YEi5vkgB2pLfsDW",t:"I"},{id:"1LElcTKVPSuCcr0l3qP3y7dmZfdGrvlx6",t:"I"},{id:"1C9TnFcjD0RakI_Fc3PprDop7ILg7EkkT",t:"I"},{id:"1zk2EK5Bf-JsbrqkUTQZh8ary-lcD92o9",t:"I"},{id:"1AoQxLb56md_g1VVQuvEZfqJ0ckqDlne4",t:"I"},{id:"1KObijpt63Tl_pA3fsneIdiJT_UGhPWXy",t:"I"},{id:"136VCE_lsPvRQ7V9MINOuYxeHDJvRrYZD",t:"I"},{id:"1T85utAFVrJBzlcxHpBadqrMB2-vhO4Zt",t:"I"},{id:"1Yac80J32XS_Q_AifRpo9umVc4qg2uSnp",t:"I"},{id:"1ajZLnztrGjEWmaPnQg2yxVFCcQJpY-Jd",t:"I"},{id:"1kcgFiqzupL9nhpVq5QaT-JxmZr3CXBs3",t:"I"},{id:"1gfgDQ4edEf4Tk1rOz2hK3c4iP7ky1F0U",t:"I"},{id:"1BKBFUCf4S8omec1BJsC3u2YVk5OqsPm4",t:"I"},{id:"1fSA77usjzOXjCoheOEUm0oMkR3xe47hJ",t:"V"},{id:"1l5y_XUXR0tZcM_KrAgVaRHGAhy0ejh5W",t:"I"},{id:"1RoRfYe3V69HAf9Fg1bj-VybupnmHIc2S",t:"I"},{id:"1ecTwuhDIz91k2L2pG9u5DxgdfeZ4MRD-",t:"I"},{id:"1NpJDRi0UUyQFPPuX5Wmc19puoR8zZytn",t:"I"},{id:"1G5xZ2MEICWyHiyezeFB0cOm3Bb6ifZ_u",t:"I"},{id:"1rrtmVcC3O7z3Oyih91dgA-B0_mKM5EE-",t:"I"},{id:"1GZvLQaPg6Z49FqYNLDi-aq7OkBrt3xjx",t:"I"},{id:"1WbIiMThCvwvPX2epujvIQpJIQF1fYv0_",t:"I"},{id:"1wPHvGmnU_mEio6l85ZHkHksQOQI2UcIO",t:"I"},{id:"1L3weGFW0dMolj2sBcLzQbEK7K7T-WoOe",t:"V"},{id:"1e_kV8-2s1D0iP4HGKTMpt8wbaco8PWMx",t:"I"},{id:"1EkNURnJvTCjF4bgBtyjWW-eOiHlLd5Yf",t:"I"},{id:"1RTxTY4ltyL3agwdSOrmxHgdZgffROm9q",t:"V"},{id:"1sBniuRSRpp49Wz4MnOPQlkJLU8_DiWMn",t:"I"},{id:"1kufwraRQLkJFI6jSSciKyKJLF1bF9zeQ",t:"I"},{id:"1FY1M3vLaiaqTdHEH_6hZ77fQDnyRFJkM",t:"I"},{id:"1JzjpFTeeW-f9eJPlLGTSos2Eq9WKvvWo",t:"I"}
+    ]},
+    "Florencia": { date:"31 oct", files:[
+      {id:"1WnYxlzJuKCU-mlLuZO2Vy1l6bV5n9UkA",t:"V"},{id:"1jqEs0MRr3wcO3_wIqsWP4WQ3-TY5ZDzI",t:"I"},{id:"1_QdgG2kodvwtDbSpFE98r2VgMiyMmSjS",t:"I"},{id:"1KGJl-TWeVlNa3aYeExuPk8SsR5excddo",t:"I"},{id:"1YpesHAlIz0NVoJsNeNKIcqxiev01PmsU",t:"I"},{id:"1WOLhmX9uM1wBVXQj7uQQ4JQCx_hqY7de",t:"I"},{id:"10gNfi5gNg1nGNdNGKgjOtuW8egXvl4F_",t:"I"},{id:"13ibsO_JbD-qEpIJqq5d0bDHP9Lkrm7S-",t:"I"},{id:"1KaQlBKqR62Eo0fjzBP0WIDgGLfDCuQhm",t:"V"},{id:"1EcEcQVbQEKZMUVdJ-SrvRMPqzRV8dstP",t:"I"},{id:"1RTJgDL2Yb_20vzrCYPGXQTN-5nY7Y5T8",t:"I"},{id:"1pv0s2wb6doioE0dz3yjRDk3VLxTKM1EI",t:"I"},{id:"19kjPy9IkGzotJsdIq0bbhfpmRggnFop4",t:"I"},{id:"1yEPycBtkDVe67SaWXOqVCyFDkBvh-FCd",t:"I"},{id:"1yzqRUkoGfsDCoPcUlO-8akWjzt6OSJfw",t:"I"},{id:"1lsJMuxaw8yyhXZ4ao2ihT28ttLLEVj_Q",t:"I"},{id:"1rw8NigGqNl4zw9IRoXOTqRbjiA859GA6",t:"V"},{id:"1Gl1RHGuagQzrluh3LzcjyKt4l0T74zDM",t:"V"},{id:"1gP5WS8Uhb70KRhniiZfdmsP8nBAzYpTk",t:"V"},{id:"1p7Yx0xPPBs1rr9L2T2_RgKvxSwn3illP",t:"I"},{id:"1m2TksM03ckWgupCKkKrCR6T3xXh1CaEk",t:"I"},{id:"1MUPcQsPiTQ3GrTrDtVUhnphW5kcjIaHR",t:"I"},{id:"1wtnpikCAy65nk6AU8Qh-_MVcJzck59Zo",t:"I"},{id:"17qNrNvv7Cx0wIp-0eu4kxmXe0dbloISj",t:"I"},{id:"1_skjWdEWOs_G8CsoSCgbIbw6njz4raYh",t:"I"},{id:"1dw_Vv6Xo-iFeb4vpKrGJ5h2FIE6yxXZF",t:"I"},{id:"1Ek7gSPGSa-v1yZB5sc7RvOsaJQ7sI5ux",t:"I"},{id:"1yW7iNq_jJMfRdQ8YOvfpfD4_JD-qm9Ek",t:"I"},{id:"19iLaUCeO9wuacKCThZ3NPZHKSjWpoiTZ",t:"I"},{id:"1mrtlyv-UFayPlq83uuJ4QYRsX8KRTPYL",t:"V"},{id:"1x16J9ZuXjh0tI3w5QvbZ8YuaUCB-orJq",t:"I"},{id:"15Zs_9uP-jl8801qQmdt7-cAXxKoCqQZA",t:"I"},{id:"1eSpso09pAwLu3HF3EStmUvwoTe0heEeV",t:"I"},{id:"1nbitCBiZ_PZzD0lRBbF5iHq85wfUFMvU",t:"V"},{id:"1K8zdx5I4m8wgmsQSwUVtDvqMFW2aF0A1",t:"I"},{id:"1yXc28Ol_7xkd23t-Vk7ORezxNhzDa8CY",t:"I"},{id:"18lDFKLnXb5oeNZVs4NE-RYm-MGXnInwv",t:"I"},{id:"1iBonIRs97etbxfajJ1Ch6Sg8HxnnLmfB",t:"I"},{id:"1AHXS2wVCxZ8Qgl_7qiLM2T7k6wOBY9j1",t:"I"},{id:"1-ezm3ueCS3CM5V0dviwAze_-cW9o4SRE",t:"V"},{id:"1tpkA-_qTAA7-pnYJGYYUeVNhdrPF0r2B",t:"V"},{id:"1lvdIHVe5JSk243PeOFZkgF5NYK56fSt9",t:"I"},{id:"1e1rKDxT33hfNwfkw0M91wDGwNm-DbqLn",t:"I"}
+    ]}
+  },
+  "Noviembre": {
+    "Roma": { date:"2 nov", files:[
+      {id:"1UgP4MU5mut4F_Il6jNX6ybQNUUEeGCgy",t:"I"},{id:"1un-qYMK6Q1dzXCPf0tZ9WNHf477_LKtR",t:"I"},{id:"1__LMIOi0NeN15Unzt_Wh0ufJDdV7P8Xh",t:"I"},{id:"1M0zOk9bA16W2t9-9Xy5COTjAZl0l8LxK",t:"I"},{id:"1aEPaNYR8waeALLtVJTmmGlujQyHcM8fs",t:"I"},{id:"1jQ9wMYTg3fs2xAyMxRW08Bt8tCYAKdCN",t:"I"},{id:"1HBj5w0U52qT7gX8AKL90X0HvSUj4p70K",t:"V"},{id:"1FgPh5EtDTKajkyCGVmG5ZvXhYS9EE5h6",t:"I"},{id:"1YigeC8-HoaWD63M_VV-H8xpg4U8dD0YL",t:"V"},{id:"1SFdWUO73vsn8XKP19_8Ybn-zfLizK1T-",t:"I"},{id:"1dKOSsIVsEpvSPtWhYtKgsPjd9crU8sXw",t:"V"},{id:"1_XXIKJ0hT5q2zV18Q8U0dBht1yZ5DOHH",t:"V"},{id:"1RSQzrJI5H0pNoRsCkN1i3DZbGmqIKD7C",t:"I"},{id:"1vl13VK3xgoMPcNp31BzQeOlf_wU1qNKR",t:"I"},{id:"1woLamSCwxsawPIdNljJrLl18Ymq90q72",t:"I"},{id:"1MINYNY2Ik1fBfYMnsbi2QSrR3rQk66sy",t:"I"},{id:"1GI0K5M-ocqyGtXOkCwZ3eOiOBXI-Co5q",t:"I"},{id:"1I8ACEVVkyqqXV0KK2E_RhKr1gw-OmIyC",t:"V"},{id:"1XsAyFY-SRGjcPnW4Am_APvUsGdCjjH9I",t:"I"},{id:"1BInv1wHtrXY6GYVBXwkiqYOtca506ryU",t:"I"},{id:"14hMcwoFedm1yvBDeOGRhnjsVJgG3KYYy",t:"I"},{id:"1tH67Dfq4yL0_kNIAYWSbH0t0eidl6Lan",t:"V"},{id:"1nB_vEala4u81ZA7PTbj6lOSXB0jLiA95",t:"I"},{id:"1K8EDtMn2Mer2A5OXeO1mv8h_Lr5VJNop",t:"I"},{id:"1Fdh-rFtoDK0pNcWG5veBIIH6WIc67SiA",t:"V"},{id:"1ScmS_6tyTgnWDOCwTnWI2m8zOzs1m6Kl",t:"V"},{id:"1sqLV_Ei8CMlet6nSHbfwB_EnsLno_6bT",t:"I"},{id:"1J4bVKrEbCHDqw0Ec_gK8hxpezLSFLDrZ",t:"I"},{id:"1VM5QSzmhovzVkj0SqsJah91n1m2sbWrd",t:"I"},{id:"1-HBnKVqfUC4fqPVj9Wy1304qp7dGap_M",t:"I"},{id:"1oxd7HWGkAGvWW-OJz8VHlf5TswdIVG84",t:"I"},{id:"1Y0XQU5m0Yeay9rdbfrt3HblmsD95lCs_",t:"I"},{id:"1NXDZHLj7nuSHfmr2EnKcVZm5LUtugQzD",t:"I"},{id:"1vg-IfHrliYFbL35orLU7H8_aUeJttgFf",t:"V"},{id:"1SGEKB5oE2p30NQnUVuO0ogmb0rPN8lF-",t:"I"},{id:"1fyTBoFuEFhmiKN-20R74qp7azJj8E18g",t:"I"},{id:"1tUO04gEtHWwofL7kBxXZcjsWbN3TzLm0",t:"V"},{id:"1vQ-sJrIDKgt_KS2EF43mC6KNGNX5fllW",t:"I"},{id:"1AVWsu2Ecg0gUmBrU7VYsdGMVChpKam5d",t:"I"},{id:"1QA6q-36yF4CEqYKO3n_I_3vwLZwVnYAU",t:"I"},{id:"1BbM4vKDZ86m_VzcRg9COjBWY3MGtXOvt",t:"I"},{id:"1bArzXFalv-cz4O4SjDT71VpP9rYssj32",t:"I"},{id:"1Snvi146rDjCRrDnIe29iJsZxmEO8IzsA",t:"I"},{id:"1Hc9_O6EDPcXArML6LPjDnGmzsuhZ7Wzb",t:"V"},{id:"10N7Ab6aNwMrjYrrTqwZdWBhOW1V3-6IZ",t:"I"},{id:"1WVIIylNbzetlqBijuAsf5Whtq9g-2YyQ",t:"I"},{id:"1jAqb1cYvI1MQHRR-fF0tW7SAjHqzc_qu",t:"I"},{id:"1MQiJDMyNOd_tFrISUHW_5GeHH3NQ4taX",t:"I"},{id:"14wpmC01DGGgU0Pk-abHVDxUvm0NhLd2O",t:"I"},{id:"149Pfb70GmW_mcZYlFIFWZFAAPCLxGm13",t:"I"}
+    ]},
+    "Venecia": { date:"6 nov", files:[
+      {id:"1E97EUCswGPhU_LNpI1jNN_I3vAKPrZws",t:"I"},{id:"15GjP2iJTRNQu0XZFUI1LHcHKD1_Bg82b",t:"V"},{id:"1j2K7WdNbH8GHBj_JzGLBH-m5ExRbTiIL",t:"V"},{id:"14iMeDKB73WF2bYSR3e4g0Olz6z88ev7t",t:"V"},{id:"1sNMDPREuBJ4ZmHu_rQBCNglkPujI-EEa",t:"I"},{id:"1Howj-fQOcFfkfxZTUpwCrwAlq6jK9yrn",t:"I"},{id:"1GPNbbkpZJr9Bx7aFytJ0ar_HEH7QegcI",t:"V"},{id:"1QBt0Ag5u1jJ5U17fJpZ-6lCvv0hrmM9w",t:"I"},{id:"1f4RRJ70kb1lR-eQO-ZFZLnc-d9CP5IMX",t:"I"},{id:"1MFcr5itxUYSvpGEqiMKTDt9dx1L_HBgJ",t:"I"},{id:"1JKvqrs1_pxIzlWYiO7DN37kz_nfRnW_N",t:"I"},{id:"1lLTzDMcv3dDS52JE-X_dGD3KW1rFOIF9",t:"I"},{id:"14ZkyT478YIhUP6qzkXEeBZXQVAQMMRh6",t:"I"},{id:"15ZIURrXsO4tWnXw4A7FMfAPAGWmIM3cY",t:"I"},{id:"1EYmgzmWZ3eBj2cI3SVgeq4vwu9KizN7-",t:"I"},{id:"1sG4o22h0q7qcNawdUk-0LjDrN_2iUS-c",t:"I"},{id:"1bncJzbDtYvg0wLtKHefTCnky-64Ewj4C",t:"I"},{id:"10uI47cVdJ8_hP3m-nxVkX4xx0u1pU2Or",t:"I"},{id:"1ygXN7C-pC1MUJWIwuSiGatFI2UCU3xry",t:"V"},{id:"1iFRmc9VpzzZwRi842Fxfe49yMkzYN5H6",t:"V"},{id:"1tmM-P8uBZZVPS-KQMhdMg2n-HNM4-QAz",t:"I"},{id:"1JXQk4Vxhl0q-H9oGGMH-44ibu3Aj_goB",t:"I"},{id:"1-_dbIj4HCBfcpueEqLTSupKa9xWAG5lg",t:"I"},{id:"16Q_bYEviqgZlb72AH1cmQnrX_I7xnTH2",t:"I"},{id:"1uf-JvgCd0HUDanOXb53FZNLwYKap6G8V",t:"I"},{id:"1TqlXvdUZ6NubJxe7ivNkvxjwqNV_28By",t:"V"},{id:"17vK7ofnINYVTc-IXQBbbS3pypuuuzmGG",t:"I"},{id:"1Mmbu3QvgScE6eSYpD7Kf_Lt1aSdI5hHv",t:"I"},{id:"1JvgiY0k8b32ZJwjAwTyiSzZI2xPslnUw",t:"I"},{id:"1m3eKGdWag1DhjjR91tuJOG4nWtO9T1RL",t:"I"},{id:"1V9ldvJkoVjz4_QZf19GC1ve83e6WQBg3",t:"I"},{id:"17ayLII-rf64DkhDHiT0tl9uDutzR4Ftg",t:"I"},{id:"1Hvx_EpIXQ3-YrFiNKOJD4bOes9Navlau",t:"I"},{id:"1oHPHhNCHuyKgGhHHQDQvi0XIXLaX5TYD",t:"I"},{id:"1piFzOyUGZ7DxhkZL5JtIOhL61AcYdRBJ",t:"I"},{id:"1x_E76Y3ieI8paTesXdlC1GHkWG5KOcRZ",t:"V"},{id:"1R0h2ECsK4Woxm6eCtdpUTRkPXey1RnBX",t:"I"},{id:"1u7yGJXeCsOJO5B833USkfLI7PDOsN7wZ",t:"I"},{id:"1YWHf5ZcWiSyI2ujjMudJI9cCWP0Dr-zn",t:"I"},{id:"1OWvYcL6JMZz7SdDjEvO1_gMyVQ3GqSOW",t:"V"},{id:"1wcJRikN4e64jQTaL1uX5ys4k76ESEqdJ",t:"I"},{id:"1fKMaSvKt6YPQVo2fj2z6zE2dMFDWXvVD",t:"I"}
+    ]},
+    "Viena": { date:"8 nov", files:[
+      {id:"1qheamPxn71-9U8Vb1XFIshCV6_KYbWnm",t:"V"},{id:"1gKcpG7UNq0zL2OsNFCTYphHcFg4FtIY7",t:"I"},{id:"1bT2fd4a4J6ilxj3D0G6dcByNKxvResbl",t:"I"},{id:"1xM14KOE8RvFwNdGI3tfIbota6Ryk1hbG",t:"V"},{id:"1wXrmSv4TfrEAATdTMUxndz0sqafto47S",t:"I"},{id:"1NbzLL7AlVhcq1xrPWUOGJVy0CWx8zp5C",t:"I"},{id:"1cWrDlG_7-89_obZYtiC10LjPIl03lotG",t:"I"},{id:"1GgYSYFDQY4Pp1nyQkFah3EROAFFsgej-",t:"I"},{id:"1ewhLAETJYw9F7RC63tqHHdCcYKzCowPV",t:"I"},{id:"1JMOw-OhUE9mHTYm0WYxlydvYRWgrSgNV",t:"I"},{id:"1dplMHPYuuzFhA5KJEO76cu9zamfcedHk",t:"I"},{id:"1ouMdmJR5TDddPvFnPjk-KMsaQ-_-EGsc",t:"V"},{id:"1c6RDa8Z6GPQtJAT71sVZm9rMGKrH4iiK",t:"I"},{id:"10uZxZFGnKJI9HlXRQMoWeEd6Lwtr5a3T",t:"I"},{id:"1h9Ci87CoJ-IyoTfNqRrSfrLPkfYFXrZA",t:"I"},{id:"1QM5ODfdjeZNzaS31T420k7Or82Qn2vyL",t:"V"},{id:"1rLot9SUIQdJId2Nsfp_1NnKdLR25PExn",t:"V"},{id:"1B0L0hOxDzVOnOQeYQ4FW4cx6o8E9tXq5",t:"I"},{id:"1YGIMPyQ8OWPn_5tt0KDhl2OLf0Gk7qCp",t:"I"},{id:"1CyuOZc1Oa5hPPMV_bYaask-TjCwbk3ka",t:"I"},{id:"15SpwIdfIswAjOjl3V4GFempWWxsmG-FY",t:"I"},{id:"1K3QMCxq70eSSNe9vVacaw0agbzyACVE0",t:"I"},{id:"1m5MFetG9iBAzsrVEwav0eHVe9Av4PizF",t:"I"},{id:"1dNGSlocQXcrvzrTK8WA_dwunSepGkcbi",t:"I"},{id:"1Q3JhXbncitGIQwB7oMZCel3nFEAG_ri7",t:"I"},{id:"1AjrR7W6T6Rnyo3FAfYZQ3VByOZ5NMy-u",t:"I"},{id:"15q8Wh4zERUxA7ocgvvUdhBsga6IyJFy6",t:"I"},{id:"12FYn-RxrnyoGPKLHfFjJpaay92Xf-CbW",t:"I"},{id:"1XIxbRtqvt18DmErg8p4uws8hxZDcVx1r",t:"I"},{id:"1F2qKYVsM_792_fVpgKBXyDCfghlNJNg8",t:"I"},{id:"1pR8_dmRzjEcjmvvvQS1UsuzjRmDfcetT",t:"I"},{id:"1Hml0-zrw5XkQcsxGwcz2jR7JsGTYs-LD",t:"I"},{id:"1QfXMlyWaqYa6AviDT5oppgPXOfLYfwHr",t:"I"},{id:"1QyKMpixBYWXJ41GJBXV027Ue9RfL1hCB",t:"I"},{id:"12Y05QkX8gbPguREcDckAJdknWtO3v-2v",t:"I"},{id:"1lk4dq-PHLKXa5RbHLbvN0aUzWoOJ-ZQB",t:"V"},{id:"1Bv108kHPoZSPd2RVMlvTw2jvVdXJ7EKk",t:"I"},{id:"1iVRB3qvAheAd_ni4KKemhMyGJOenWVNM",t:"I"},{id:"1T_43kXjf3Bhs60H13yVtZVmVZtglQLR6",t:"I"},{id:"1HUX9pYezY70ZYh4sUJksL4FHnl4XOJtZ",t:"I"},{id:"1fZDGcDLQrh3-abz_kPbqL9BBL4kFECq0",t:"I"},{id:"1_JaRcsaooL1KScHBPUZlDn7FVHTN_8xm",t:"I"},{id:"1e12MndUotrXy9_OJCC7-03_E27FSdQOW",t:"I"},{id:"14XDbD_PXDiVW0eIC9yZgMF6W0Ce1edkn",t:"I"},{id:"1V45y6FFqmj3ImxWOFgwCooRvPZI89pmM",t:"V"},{id:"1TwNWIZcQUClbfObRjjGv_Qm_wLGZANFb",t:"V"},{id:"1z2dTlpg1U04JOG0fAExWHpRgpuihwDZp",t:"I"},{id:"10CQOS5BqQCIiunq7JldW4O4FMJuU4av7",t:"I"}
+    ]},
+    "Praga": { date:"11 nov", files:[
+      {id:"11QYKDGLA1YjnmqjezACTHc2M73DL4_n5",t:"V"},{id:"1-IhPofiCR9jnBx0Tdq6P0RiN5nZtFuF5",t:"I"},{id:"1q0dSajsRBtuiguCfPLKZyefn26_z4x_B",t:"I"},{id:"1_FZtGxyOhwWT6gZUx51QdHqlwDgnPxYN",t:"I"},{id:"1_cTzflPE6zZ1rh6r_z0x2tLaDI_52kwL",t:"I"},{id:"19ag6I7SehiVmFs9pjgmeCaM0e3xNYUBB",t:"I"},{id:"1bQLPAY27u4r5oy2bkG6iKC3O_nUs5tkz",t:"I"},{id:"1GplZnfX1KE_vfi-VNO9dqOOS2DiNX-wH",t:"I"},{id:"1cuqUhr4qCbi8ruMEHUCLgOq4FiB173ON",t:"I"},{id:"1EWaYBCsk5rvbTxECbqjrREi5XSWHTOr-",t:"I"},{id:"1DvJjYN3aDxRGvzDs0qaQXu5lXKeMA-Nr",t:"I"},{id:"1YPK49EjZh-v8pgkyE0tdV9S1go_V7ilh",t:"V"},{id:"1cdiz5q8hfWB-_P5YMc-0qLl3QSsqoeme",t:"V"},{id:"1rz1sKjxWn6cUc2WZBC858ICREu0O2lNf",t:"I"},{id:"1tAa29HgvvuiTCZUwCji5JomAKGtxT_Gz",t:"V"},{id:"15W9P4jU-Wzb-B3GIpZ_cSoy9IeVuW04q",t:"I"},{id:"1V-1IXKk5xuMLRsD2SJBi3V_EWPuwZUeQ",t:"I"},{id:"1ERmCVNAUrU5v2wZqPpAo5H4xxRlJoKA8",t:"I"},{id:"1zgwQBPcpftQwKJ_Fvz36AugtheIglteM",t:"I"},{id:"1IwwGkqufbBoRPadHu1V89ba0M6HsZWJS",t:"I"},{id:"1jOxd0S6BzUtGFr9w_HHplLPalhBLYXrY",t:"I"},{id:"1VJsMQPhbXFCNggD-LpVCPFsufBepTNkW",t:"I"},{id:"18jmL7V1ReI1I-etcPUwdE8_9wdDgpP6H",t:"I"},{id:"1vsKmO3zPGVaCalegq8VyA-0km30M-lxT",t:"I"},{id:"1z5V_K1GanSNsKIC_jn90AynXaAQxivOV",t:"V"},{id:"1xGmFTftAuUb2sLXBsAfFvtARuAQBzrWy",t:"I"},{id:"1OGW_5xemUlyuwkswS0af6_jcpJ6L6kfV",t:"I"},{id:"1XzTnhxjirB5hhRc7bdAW_jmGywFNKcXX",t:"I"},{id:"144z14clA00R3zQHRXg30gOpvzCTrDiUq",t:"I"},{id:"1nM2X8IoQ9E78cGEkldYgjVjO-ee6CvrW",t:"I"},{id:"12w_bgsGIisJnxYR7jW0FgXHKiOl6fiqs",t:"V"},{id:"1XnVO9DfnEG3rPMbZPAc2_2SA5y2gB9UX",t:"V"},{id:"1hZAmHSW5Zm7XYj4SH1EEUw0hFBtBCzd8",t:"I"},{id:"1qhRg08WrI4FrDMvrVvvlkP3rPcWTKVm0",t:"I"},{id:"1abMEaIt8RQvqY_i8cCExNCdvmGiuUeYA",t:"V"},{id:"1zyvPMpnq3UHDXUQdA9dbXV5PkOp49AjE",t:"I"},{id:"1U1MfRlhGKNxxFW9mG2svGQAsTI1MZ1hj",t:"I"},{id:"1amTPBamqM7bEkg8WlXTUlYAebQmElrmz",t:"I"},{id:"1NVFfAxhWIaUUiKJS-C6Q7a1bLDD8msY5",t:"I"},{id:"1UT85eEOZMhX9GOvLIjP_EQKUQ2LoN7hM",t:"I"},{id:"1nk2-fBk0HkIB2u8qrHsmXtkzdkAbDY89",t:"I"},{id:"1YFUE85EL2COBQDqjLOXjx6qQImfaDjUG",t:"I"},{id:"1RKQi82JnktiHGKLAv1CE0ia0Iu2Nf3C2",t:"I"},{id:"1M9oVS_IxcJZCh59ofzcRaIVOcvoexr96",t:"I"},{id:"11ezjdkqBM8tni_Xo-v401z7Z3Y1UsHeW",t:"I"},{id:"1-E3HDSDdMq1rwDV92AAexF0pcOy2hKcB",t:"I"},{id:"1HDwoIrM_p_hYyZWlQJs3_abot6Bn-Ph2",t:"I"},{id:"148g3wZT4QagvwwJrptZDqi_VWjUq-Usy",t:"I"},{id:"1DrXSIIuCpH3vBSxK08OEWuEolVIcAgSH",t:"V"},{id:"1qaabbm1ssKm1KTnKUOKJIa3rjk8zz9J4",t:"I"}
+    ]},
+    "Dresden": { date:"15 nov", files:[
+      {id:"1PfP_lQsA20NPCPdw1A1wlZ81x9lI7AGM",t:"I"},{id:"1UXhl7Ym3IqGUDrtjztqeZjiJ6JRgC7es",t:"I"},{id:"1Lzhcb4Niq5aHd7aJnbbE0fyNZWQW74kE",t:"V"},{id:"1mnMHYYylJCAlNoATGhyGEU-YTOI7l2yZ",t:"I"},{id:"15lCwLmv00qzgfwkyORWhL_A9OhbiBFNr",t:"I"},{id:"1g9O0G0OMlbxLPg-p9k7Xsjlo9Jueni1b",t:"V"},{id:"1gS6W0frM2AQSouhpGAMjkbN_TsXd8RKA",t:"V"},{id:"18IbPRoxZ9fYgSyRQxDl785CkexGLzTUU",t:"V"},{id:"1Ea9iZ9FjjL8Axz7euIvZPbmmTR8FPcly",t:"I"},{id:"1uWG-0NGhdRklAJ1PrYy9wFjntDDM-kC-",t:"I"},{id:"1p6rC3lMVlKuaAKvGMgtUE7IjeT4guT9i",t:"I"},{id:"19Mi3mCk5SfivieLcnDST7Od0J7qen6Fs",t:"I"},{id:"1TvwpiSRipx4IJ4VAW9PJ573IFE-sNfw8",t:"I"},{id:"1f-5FiXVHtY5RtIxlbMvIug4M_a_qDoaQ",t:"I"},{id:"1e9gLisWVNvjC9_TbcH0GbH8ayEfeV8hm",t:"I"},{id:"1OBTGu-0nWm0srdNZFb8vLIHZDoypKl3f",t:"I"},{id:"1GMRRU1KjzxBIZ9eaucIugupgi0MJVJrv",t:"I"},{id:"1MJhJRklNIPMg7eLwkYWaNas6AWm62no-",t:"I"},{id:"15bLlGfHWDlcQnsgMjiVExHwJ7CHgKKIN",t:"I"}
+    ]},
+    "Berlin": { date:"18 nov", files:[
+      {id:"1t0jAZXmwjojAIaW5vlKRG2d5AcaYLpCV",t:"V"},{id:"15oCc9_VCGuc-m97Yhf71hOpfYdNO-HwU",t:"I"},{id:"1v8GpRZFfPX8FnrYAVw6jYcWsRg_OB-Dh",t:"I"},{id:"1k2a74vFegxHnlWhbtmBPvsXEWWMueKBC",t:"I"},{id:"1uQZ2ZnjJv0sJ-zHMMEWwFvRotJg8yYPZ",t:"V"},{id:"1GzX0WoSZOSOArGpBhw4_ktlUXuOnpyww",t:"I"},{id:"1pke2w7VCp2PuWAJcUekASkT8EFFE0zzB",t:"I"},{id:"1eJUgFgF5ItUXjRncz8_FW7wLByAdrDV9",t:"I"},{id:"1k69o6bUtA7StfbqVFFOvx2rZhBeIy32q",t:"V"},{id:"1OBV9JRPbiScG-_NUQR5O8XBXtQ1xacMp",t:"I"},{id:"1rOIxVHZnKXQT_MRuHu1DnHI9UJcc0w00",t:"I"},{id:"1mFaYAs72DbHWnPs55tTGaQVJSf7KP9od",t:"V"},{id:"1rGSfD39YkIWNjI1KMOGzdRePbiiuYI8Y",t:"I"},{id:"1LHXi7iKZeYp5KVF88sQGgqeX4doITN6e",t:"I"},{id:"1_mmbsXrLFh51xiwhvFJrX3EO3nR1S9P3",t:"I"},{id:"1kTQ5QUSsCmq4T5goNYFzWIi71FMuTCYo",t:"I"},{id:"167arRjQnkWNq40W_igQhxEenBU-fR3t1",t:"I"},{id:"1aWlGrkyt-lTmXgvKjfOvZKggGfBfIVN4",t:"I"},{id:"11jh5IAJklik29DoG9jLU8IyIS7j0ZHpz",t:"I"},{id:"1yhVzBtI8YvikgYIuTNjh-qhv3B-p64BI",t:"I"},{id:"1-C-aHwkGgyzMHfPIptHW-2fhknG_HAlR",t:"I"},{id:"1xtJGSsXwvTLEz5fLQUew_SBGq_7keKUz",t:"I"},{id:"1Jlzvg6Z-imCqtUYwtzQcYY4L05gXnzLK",t:"I"},{id:"1Pwl2mQjUsBy5ek6iCpTkiFLUPhWEvmlI",t:"I"},{id:"1KWfgoDxuIs1uBrmef0vgEmV1HBUYvO0m",t:"I"},{id:"1G7paZ-GtgJhve4hwqT3EeQxyFBgSapmo",t:"I"},{id:"1w8VokbhPCCcZhtT0HjCAVi4dX1DHP-gv",t:"I"}
+    ]}
+  },
+  "Diciembre": {
+    "Colonia": { date:"3 dic", files:[
+      {id:"1xO5oRX0pdeifVxW16OeDBYkxHV-r__z7",t:"I"},{id:"1fj4xcTPP_JMfG9kw7FiWUEcAIi9e6kX-",t:"I"},{id:"1jjxIgRZi0vKUWYV4xi_g-I8Dmxzw26uH",t:"I"},{id:"1WpN0-n9NBzGT9r6IV3ciz3WX6dCiJAYx",t:"I"}
+    ]},
+    "Amsterdam": { date:"4 dic", files:[
+      {id:"1h0nY4UEQcJ5CCOexf7IuPtxEwwC0GVlY",t:"I"},{id:"1CV-d6hUlZp9QluL0UFhSFyZYtQeXjEE-",t:"I"},{id:"1OhqgVpDIqYpLO4yQ_0AZXgJias2xESpZ",t:"I"},{id:"1csexT99swAlN9Z5w9ZOoU4TGqBSN0jgA",t:"I"},{id:"1Rfmia69v7rUf-gkxIm2lneW9fg4xu2U4",t:"I"},{id:"1QCdSD6A5kp0PV0kS0fE9SEcJ5XPA4GKE",t:"I"},{id:"1InAyCSp8CZkMQD_cGGYWdBqtMdeKvGz7",t:"I"},{id:"1sAYQ0nvX0ESTh3NCVi-X26J3VFiHbFmA",t:"V"},{id:"16XT_A3KBK_Tm2198BIG9QtcLUcNqd2lp",t:"I"},{id:"12IXALaAX_CG8TRI9fFi69Re8JEsVFfBr",t:"I"},{id:"19256LYASPJYlzDbfz9OK9jHnMRV9ufdi",t:"I"},{id:"1y7RsOSuiU2YRabS3m9NhrcyGuvfy0VcI",t:"I"},{id:"1EPwm7wrsDl732xgOMtpfqh3Z5_sTvKEa",t:"I"}
+    ]}
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// CITY INFO + MAP COORDS
+// ═══════════════════════════════════════════════════════════
+const CITY_INFO = {
+  "Amsterdam": { country:"Paises Bajos", facts:"Mas bicicletas que habitantes. 165 canales. Capital mundial del diseno.", cx:520, cy:188 },
+  "Brujas": { country:"Belgica", facts:"Patrimonio UNESCO. La Venecia del Norte. Ciudad medieval mejor conservada.", cx:495, cy:200 },
+  "Bruselas": { country:"Belgica", facts:"Sede de la UE. Capital del chocolate. El Atomium.", cx:505, cy:208 },
+  "Paris": { country:"Francia", facts:"Ciudad Luz. 130 museos. La Torre Eiffel pesa 10,100 toneladas.", cx:478, cy:255 },
+  "Ginebra": { country:"Suiza", facts:"Sede de la ONU. El Jet d'Eau alcanza 140m. Relojeria de lujo.", cx:522, cy:292 },
+  "Genova": { country:"Italia", facts:"Ciudad natal de Colon. El pesto nacio aqui. Puerto mas grande de Italia.", cx:548, cy:315 },
+  "Florencia": { country:"Italia", facts:"Cuna del Renacimiento. El David de Miguel Angel. Capital de la Toscana.", cx:565, cy:330 },
+  "Roma": { country:"Italia", facts:"La Ciudad Eterna. 2,000+ fuentes. El Coliseo tiene casi 2000 anos.", cx:575, cy:365 },
+  "Venecia": { country:"Italia", facts:"118 islas, 400 puentes. Se hunde 1-2mm al ano. Sin coches.", cx:570, cy:295 },
+  "Viena": { country:"Austria", facts:"Capital de la musica clasica. Sachertorte. Palacios imperiales.", cx:610, cy:255 },
+  "Praga": { country:"Rep. Checa", facts:"Ciudad de las 100 torres. Cerveza mas barata que agua. Reloj astronomico de 1410.", cx:592, cy:222 },
+  "Dresden": { country:"Alemania", facts:"La Florencia del Elba. Reconstruida tras WWII. Opera Semper.", cx:585, cy:208 },
+  "Berlin": { country:"Alemania", facts:"3x mas puentes que Venecia. Currywurst. Capital de la cultura underground.", cx:580, cy:190 },
+  "Colonia": { country:"Alemania", facts:"Catedral de 632 anos. Eau de Cologne. Carnaval famoso.", cx:540, cy:200 }
+};
+
+const MONTH_ICONS = {
+  "Octubre":`<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2c0 5-4 7-7 8 2 0 5 1 7 8 2-7 5-8 7-8-3-1-7-3-7-8z"/></svg>`,
+  "Noviembre":`<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v2M10 2v3M13 4v2"/><path d="M4 8c1-2 2-2 3-2s2 1 3 1 2-1 3-1 2 0 3 2"/><path d="M5 12c1 2 2 3 5 3s4-1 5-3"/><line x1="7" y1="8" x2="6" y2="12"/><line x1="10" y1="8" x2="10" y2="12"/><line x1="13" y1="8" x2="14" y2="12"/></svg>`,
+  "Diciembre":`<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="2" x2="10" y2="18"/><line x1="2" y1="10" x2="18" y2="10"/><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/><circle cx="10" cy="10" r="2"/></svg>`
+};
+
+// Mini-map Europe SVG paths (viewBox 0 0 100 100)
+const EUROPE_PATHS = {
+  bg: [
+    // UK - Great Britain
+    "M22,22 L23,19 L25,17 L26,15 L28,14 L30,15 L31,17 L32,16 L33,17 L33,19 L34,20 L33,22 L34,24 L33,26 L31,28 L30,30 L28,31 L27,33 L25,34 L24,32 L22,31 L21,29 L20,27 L21,25 L22,23Z",
+    // Ireland
+    "M14,24 L16,22 L18,21 L20,22 L21,24 L20,26 L21,28 L19,30 L17,31 L15,30 L13,28 L13,26Z",
+    // Spain
+    "M18,56 L20,54 L24,52 L28,50 L32,49 L35,50 L37,52 L38,54 L39,56 L38,58 L39,60 L38,62 L36,64 L34,66 L31,67 L28,68 L25,67 L22,66 L19,64 L17,62 L16,60 L17,58Z",
+    // Portugal
+    "M15,56 L17,54 L18,56 L17,58 L16,60 L17,62 L16,64 L14,63 L13,60 L14,58Z",
+    // Norway
+    "M42,6 L44,4 L46,5 L48,4 L49,6 L48,8 L49,10 L48,12 L47,15 L46,18 L44,20 L43,18 L42,15 L41,12 L40,10 L41,8Z",
+    // Sweden
+    "M46,8 L48,6 L49,6 L49,10 L50,13 L51,16 L50,20 L49,23 L48,26 L46,28 L45,26 L44,23 L44,20 L45,17 L46,13 L46,10Z",
+    // Finland
+    "M52,6 L54,5 L56,6 L57,9 L57,12 L56,15 L56,18 L55,21 L53,23 L52,21 L51,18 L51,15 L50,12 L51,9Z",
+    // Denmark
+    "M41,26 L43,25 L44,26 L44,28 L43,30 L42,31 L40,30 L40,28Z",
+    // Poland
+    "M54,30 L57,29 L60,28 L63,29 L65,30 L66,32 L67,34 L66,36 L65,38 L63,39 L61,40 L59,39 L56,38 L54,37 L53,35 L53,33Z",
+    // Hungary
+    "M58,42 L61,41 L64,40 L66,41 L68,42 L69,44 L68,46 L66,47 L64,47 L62,46 L60,45 L58,44Z",
+    // Romania
+    "M66,38 L69,37 L72,38 L74,40 L75,42 L74,44 L73,46 L71,48 L69,48 L67,47 L66,45 L65,43 L65,40Z",
+    // Serbia/Balkans
+    "M60,48 L62,47 L64,48 L66,49 L67,51 L66,53 L65,55 L63,56 L61,55 L59,54 L59,52 L59,50Z",
+    // Greece
+    "M62,58 L64,56 L66,56 L68,57 L69,59 L68,62 L67,64 L65,66 L63,65 L62,63 L61,61Z",
+    // Peloponnese
+    "M62,66 L64,65 L65,67 L64,69 L62,69 L61,68Z",
+    // Baltic states
+    "M54,24 L56,23 L58,24 L59,26 L58,28 L56,29 L54,28 L53,26Z",
+  ],
+  "Francia": "M28,40 L30,38 L33,37 L36,36 L38,37 L40,36 L42,37 L44,39 L45,41 L46,43 L47,46 L46,48 L45,50 L44,52 L42,53 L40,54 L38,54 L36,53 L34,52 L32,50 L30,49 L29,47 L28,45 L27,43Z",
+  "Paises Bajos": "M40,28 L42,27 L44,27 L45,28 L46,29 L45,30 L44,31 L42,32 L41,31 L40,30Z",
+  "Belgica": "M40,32 L42,31 L44,31 L45,32 L45,33 L44,34 L42,35 L40,34 L39,33Z",
+  "Alemania": "M42,26 L44,25 L46,25 L48,26 L50,27 L52,28 L54,30 L54,32 L53,34 L52,36 L50,38 L48,39 L46,39 L45,38 L44,36 L43,34 L42,32 L41,30 L41,28Z",
+  "Suiza": "M40,46 L42,45 L44,44 L46,45 L46,47 L45,48 L43,49 L41,49 L40,48Z",
+  "Italia": "M48,46 L50,44 L52,43 L54,44 L56,46 L57,48 L56,50 L56,52 L57,54 L58,56 L58,58 L57,60 L56,62 L55,64 L54,66 L52,67 L51,65 L52,63 L53,60 L53,58 L52,56 L51,54 L50,52 L49,50 L48,48Z",
+  // Sardinia
+  "Italia_s": "M47,58 L48,57 L49,58 L49,60 L48,61 L47,60Z",
+  // Sicily
+  "Italia_si": "M52,68 L54,67 L56,68 L57,69 L55,70 L53,70Z",
+  "Austria": "M48,40 L50,39 L52,38 L54,38 L56,39 L58,40 L59,41 L58,42 L56,43 L54,43 L52,43 L50,43 L49,42 L48,41Z",
+  "Rep. Checa": "M48,34 L50,33 L52,32 L54,32 L56,33 L57,34 L56,36 L55,37 L53,38 L51,38 L49,37 L48,36Z",
+};
+
+function miniMapSVG(countryName) {
+  let svg = `<svg viewBox="8 0 80 75" xmlns="http://www.w3.org/2000/svg">`;
+  const gray = "#D0CEC8";
+  const dark = "#1A1A1A";
+  // Background countries
+  EUROPE_PATHS.bg.forEach(d => { svg += `<path d="${d}" fill="${gray}" stroke="none"/>`; });
+  // Visited countries
+  Object.entries(EUROPE_PATHS).forEach(([k, v]) => {
+    if (k === "bg") return;
+    // Italia, Italia_s, Italia_si all highlight for Italia
+    const baseCountry = k.replace(/_s$|_si$/,"");
+    const isHighlighted = baseCountry === countryName ||
+      (countryName === "Italia" && k.startsWith("Italia"));
+    svg += `<path d="${v}" fill="${isHighlighted ? dark : gray}" stroke="none"/>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+// Full route order (chronological)
+const ROUTE_ORDER = [
+  {city:"Amsterdam",month:"Octubre"},{city:"Brujas",month:"Octubre"},{city:"Bruselas",month:"Octubre"},
+  {city:"Paris",month:"Octubre"},{city:"Ginebra",month:"Octubre"},{city:"Genova",month:"Octubre"},
+  {city:"Florencia",month:"Octubre"},{city:"Roma",month:"Noviembre"},{city:"Venecia",month:"Noviembre"},
+  {city:"Viena",month:"Noviembre"},{city:"Praga",month:"Noviembre"},{city:"Dresden",month:"Noviembre"},
+  {city:"Berlin",month:"Noviembre"},{city:"Colonia",month:"Diciembre"},{city:"Amsterdam",month:"Diciembre"}
+];
+
+
+// ═══════════════════════════════════════════════════════════
+// PIN POSITIONS (percentage of globe)
+// ═══════════════════════════════════════════════════════════
+const PIN_POSITIONS = {
+  "Amsterdam": { left: 42, top: 28 },
+  "Brujas": { left: 36, top: 33 },
+  "Bruselas": { left: 40, top: 37 },
+  "Paris": { left: 30, top: 48 },
+  "Ginebra": { left: 44, top: 58 },
+  "Genova": { left: 52, top: 64 },
+  "Florencia": { left: 56, top: 68 },
+  "Roma": { left: 60, top: 78 },
+  "Venecia": { left: 57, top: 58 },
+  "Viena": { left: 70, top: 48 },
+  "Praga": { left: 65, top: 38 },
+  "Dresden": { left: 62, top: 33 },
+  "Berlin": { left: 60, top: 28 },
+  "Colonia": { left: 48, top: 34 }
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentMonth = "Octubre";
+let expandedCity = null;
+let lightboxFiles = [];
+let lightboxIndex = 0;
+let mapVisible = false;
+let activePopup = null;
+
+const monthNames = Object.keys(DATA);
+const $monthsGlass = document.getElementById("monthsGlass");
+const $citiesFlow = document.getElementById("citiesFlow");
+const $lightbox = document.getElementById("lightbox");
+const $lbContent = document.getElementById("lbContent");
+const $lbCounter = document.getElementById("lbCounter");
+const $journeyMap = document.getElementById("journeyMap");
+const $globe = document.getElementById("globe");
+const $mapPins = document.getElementById("mapPins");
+const $routeLine = document.getElementById("routeLine");
+const $mapPopup = document.getElementById("mapPopup");
+const $mapTooltip = document.getElementById("mapTooltip");
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function thumb(id, sz) { return `https://lh3.googleusercontent.com/d/${id}=w${sz}`; }
+function videoPreview(id) { return `https://drive.google.com/file/d/${id}/preview`; }
+
+// ═══════════════════════════════════════════════════════════
+// RENDER GLASS BAR
+// ═══════════════════════════════════════════════════════════
+function renderGlassBar() {
+  $monthsGlass.innerHTML = "";
+
+  // Profile section: avatar + titles
+  const profile = document.createElement("div");
+  profile.className = "bar-profile";
+  profile.innerHTML = `
+    <img class="bar-avatar" src="kyra.jpg" alt="Kyra">
+    <div class="bar-titles">
+      <span class="bar-title-main">El Viaje de Kirita</span>
+      <span class="bar-title-sep"></span>
+      <span class="bar-title-sub">Eurotrip, @2025</span>
+    </div>`;
+  $monthsGlass.appendChild(profile);
+
+  // Separator after profile
+  const profSep = document.createElement("div");
+  profSep.className = "glass-sep";
+  $monthsGlass.appendChild(profSep);
+
+  monthNames.forEach((m, i) => {
+    const btn = document.createElement("button");
+    btn.className = "month-btn" + (m === currentMonth ? " active" : "");
+    btn.innerHTML = `<span class="month-icon">${MONTH_ICONS[m]||""}</span>${m}`;
+    btn.addEventListener("click", () => {
+      currentMonth = m;
+      expandedCity = null;
+      renderGlassBar();
+      renderCities();
+      renderMapPins();
+    });
+    $monthsGlass.appendChild(btn);
+    if (i < monthNames.length - 1) {
+      const sep = document.createElement("div");
+      sep.className = "glass-sep";
+      $monthsGlass.appendChild(sep);
+    }
+  });
+  // Map toggle
+  const sep2 = document.createElement("div");
+  sep2.className = "glass-sep";
+  $monthsGlass.appendChild(sep2);
+  const mapBtn = document.createElement("button");
+  mapBtn.className = "glass-btn" + (mapVisible ? " active-toggle" : "");
+  mapBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/></svg>`;
+  mapBtn.addEventListener("click", () => {
+    mapVisible = !mapVisible;
+    $journeyMap.classList.toggle("collapsed", !mapVisible);
+    mapBtn.classList.toggle("active-toggle", mapVisible);
+  });
+  $monthsGlass.appendChild(mapBtn);
+  // Theme toggle
+  const themeBtn = document.createElement("button");
+  themeBtn.className = "glass-btn";
+  themeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
+  themeBtn.addEventListener("click", () => {
+    document.documentElement.classList.toggle("dark");
+    localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+    renderGlassBar();
+  });
+  $monthsGlass.appendChild(themeBtn);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOT MATRIX MAP (Europe made of dots)
+// ═══════════════════════════════════════════════════════════
+const COUNTRIES = {
+  visited: [
+    // France (detailed)
+    [[448,238],[455,230],[462,224],[470,220],[478,218],[485,216],[492,218],[498,222],[502,226],[506,230],[510,236],[514,242],[518,250],[522,258],[524,266],[526,274],[525,282],[523,290],[520,296],[516,302],[510,308],[504,312],[498,314],[492,314],[486,312],[480,310],[474,306],[468,300],[462,294],[458,286],[454,278],[450,270],[447,262],[445,254],[446,246]],
+    // Belgium
+    [[492,206],[498,202],[504,200],[510,200],[516,202],[520,206],[518,210],[514,214],[508,216],[502,216],[496,214],[492,210]],
+    // Netherlands
+    [[498,190],[504,186],[510,184],[516,186],[520,190],[522,194],[520,198],[516,202],[510,202],[504,200],[500,196]],
+    // Germany (detailed)
+    [[520,178],[528,174],[536,172],[544,170],[552,172],[560,174],[568,178],[575,182],[580,188],[584,194],[586,200],[586,208],[584,214],[580,220],[576,224],[570,226],[564,226],[558,224],[552,222],[546,218],[540,216],[534,212],[528,208],[524,204],[520,198],[518,192],[518,186]],
+    // Switzerland
+    [[514,282],[520,278],[526,276],[532,278],[536,282],[534,288],[530,292],[524,294],[518,294],[514,290],[512,286]],
+    // Italy boot (detailed)
+    [[542,286],[548,282],[554,280],[560,278],[566,280],[572,284],[576,290],[578,296],[580,304],[580,312],[578,320],[576,328],[574,336],[572,344],[568,352],[566,358],[562,364],[558,370],[554,376],[550,380],[546,376],[548,368],[550,360],[552,352],[554,344],[554,336],[552,328],[548,320],[544,312],[542,304],[540,296],[540,290]],
+    // Italy - Sicily
+    [[556,382],[562,380],[568,382],[572,386],[570,390],[566,394],[560,394],[556,390],[554,386]],
+    // Italy - Sardinia
+    [[530,330],[534,326],[538,328],[540,334],[538,340],[534,342],[530,338],[528,334]],
+    // Austria (detailed)
+    [[556,248],[564,244],[572,242],[580,242],[588,244],[596,246],[604,248],[610,252],[614,256],[612,260],[608,264],[602,266],[596,266],[590,266],[584,264],[578,264],[572,262],[566,260],[560,258],[556,254]],
+    // Czech Republic (detailed)
+    [[568,216],[574,212],[580,210],[586,210],[592,212],[598,216],[602,220],[600,226],[596,230],[590,234],[584,234],[578,232],[572,228],[568,224],[566,220]],
+  ],
+  context: [
+    // Great Britain (detailed)
+    [[415,168],[418,160],[422,154],[426,148],[430,144],[434,140],[438,138],[442,140],[446,144],[448,148],[450,154],[452,160],[452,166],[450,172],[448,178],[446,184],[442,188],[438,192],[434,194],[430,196],[426,194],[422,192],[420,188],[418,184],[416,180],[414,174]],
+    // Scotland top
+    [[424,136],[428,132],[434,130],[438,132],[442,136],[440,140],[436,142],[430,142],[426,140]],
+    // Ireland (detailed)
+    [[390,156],[394,150],[398,148],[402,148],[406,152],[408,158],[408,164],[406,170],[402,174],[398,176],[394,176],[390,174],[386,170],[384,164],[386,160]],
+    // Spain (detailed)
+    [[410,276],[418,270],[426,266],[434,264],[442,264],[450,266],[456,270],[460,276],[462,282],[464,290],[464,298],[462,306],[458,314],[454,320],[448,326],[442,330],[436,334],[430,336],[424,336],[418,334],[412,330],[408,324],[404,318],[402,312],[400,304],[400,296],[402,288],[404,282]],
+    // Portugal
+    [[394,280],[400,276],[404,280],[404,288],[402,296],[400,304],[398,310],[396,316],[392,318],[388,314],[386,308],[386,300],[388,292],[390,286]],
+    // Norway (detailed)
+    [[540,118],[544,112],[548,108],[552,106],[556,108],[558,112],[558,118],[556,124],[556,130],[554,136],[552,142],[550,148],[548,154],[546,160],[544,166],[542,170],[540,164],[538,158],[538,150],[538,142],[538,134],[540,126]],
+    // Sweden
+    [[546,110],[550,106],[554,106],[558,108],[560,114],[562,122],[562,130],[560,138],[558,146],[556,154],[554,160],[552,166],[550,172],[548,176],[546,172],[544,166],[544,160],[546,152],[548,144],[548,136],[548,128],[548,120],[546,114]],
+    // Finland
+    [[564,110],[568,106],[572,106],[576,110],[578,116],[578,124],[578,132],[576,140],[574,148],[572,154],[568,158],[566,154],[564,148],[562,142],[562,134],[562,126],[562,118]],
+    // Denmark (Jutland)
+    [[536,170],[540,166],[544,168],[546,172],[546,178],[544,182],[540,184],[538,182],[536,178],[534,174]],
+    // Poland (detailed)
+    [[600,192],[608,188],[616,186],[624,186],[632,188],[638,192],[642,198],[644,206],[642,214],[638,220],[634,226],[628,228],[622,228],[616,226],[610,222],[606,216],[602,210],[600,204],[600,198]],
+    // Hungary
+    [[612,250],[620,246],[628,244],[636,246],[640,250],[642,256],[640,262],[636,266],[630,268],[624,268],[618,266],[614,262],[612,258],[612,254]],
+    // Romania
+    [[642,240],[650,238],[658,240],[664,244],[668,250],[668,258],[666,264],[662,270],[656,274],[650,274],[644,272],[640,268],[638,262],[638,256],[640,248]],
+    // Serbia/Croatia/Bosnia
+    [[600,268],[606,264],[612,262],[616,266],[618,272],[620,280],[618,288],[614,294],[610,298],[606,300],[602,298],[598,294],[596,288],[596,282],[598,276]],
+    // Greece mainland
+    [[614,310],[620,306],[626,304],[632,308],[636,314],[634,322],[630,328],[626,334],[622,338],[618,340],[614,338],[612,334],[610,328],[610,322],[612,316]],
+    // Peloponnese
+    [[614,342],[620,340],[624,344],[622,350],[618,354],[614,352],[612,348]],
+    // North Africa
+    [[388,370],[410,362],[435,356],[460,352],[485,350],[510,350],[535,352],[560,356],[585,362],[605,370],[618,378],[618,388],[600,392],[575,395],[550,396],[525,396],[500,394],[475,392],[450,390],[425,386],[405,382],[392,378]],
+    // Baltic states
+    [[598,172],[604,168],[610,166],[616,168],[618,174],[618,182],[616,188],[612,192],[608,192],[604,190],[600,186],[598,180]],
+    // Croatia coast detail
+    [[590,274],[596,270],[600,272],[602,278],[600,284],[596,288],[592,286],[590,280]],
+  ]
+};
+
+function pointInPolygon(x, y, polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function renderDotMatrix() {
+  const $dotMatrix = document.getElementById("dotMatrix");
+  $dotMatrix.innerHTML = "";
+  const DOT_R = 1.5;
+  const SPACING = 4.5;
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  // Generate grid of dots and test against polygons
+  for (let x = 365; x <= 720; x += SPACING) {
+    for (let y = 105; y <= 470; y += SPACING) {
+      // Check if inside globe circle (center ~540, ~290, radius ~185)
+      const dx = x - 540, dy = y - 290;
+      if (dx*dx + dy*dy > 185*185) continue;
+
+      let isVisited = false;
+      let isLand = false;
+
+      for (const poly of COUNTRIES.visited) {
+        if (pointInPolygon(x, y, poly)) { isVisited = true; isLand = true; break; }
+      }
+      if (!isLand) {
+        for (const poly of COUNTRIES.context) {
+          if (pointInPolygon(x, y, poly)) { isLand = true; break; }
+        }
+      }
+
+      if (isLand) {
+        const c = document.createElementNS(svgNS, "circle");
+        c.setAttribute("cx", x);
+        c.setAttribute("cy", y);
+        c.setAttribute("r", DOT_R);
+        c.setAttribute("class", isVisited ? "dot-land-visited" : "dot-land");
+        $dotMatrix.appendChild(c);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP PINS + ROUTE (Globe version)
+// ═══════════════════════════════════════════════════════════
+function renderMapPins() {
+  $mapPins.innerHTML = "";
+  closeMapPopup();
+
+  // Build route points for SVG polyline
+  const pts = ROUTE_ORDER.map(r => {
+    const info = CITY_INFO[r.city];
+    return `${info.cx},${info.cy}`;
+  }).join(" ");
+  $routeLine.setAttribute("points", pts);
+  $routeLine.classList.remove("animate");
+  void $routeLine.offsetWidth;
+  $routeLine.classList.add("animate");
+
+  // Track which cities we've already placed a pin for (avoid duplicates like Amsterdam appearing twice)
+  const placedCities = new Set();
+
+  ROUTE_ORDER.forEach((r, i) => {
+    const info = CITY_INFO[r.city];
+    const pos = PIN_POSITIONS[r.city];
+    if (!pos) return;
+
+    // For duplicate cities (Amsterdam in Oct + Dec), show the one matching current month, or the first one
+    if (placedCities.has(r.city)) return;
+    placedCities.add(r.city);
+
+    const isActive = r.month === currentMonth || 
+      (DATA[currentMonth] && DATA[currentMonth][r.city]);
+
+    // Count photos for this city across all months it appears
+    let photoCount = 0;
+    for (const month of Object.keys(DATA)) {
+      if (DATA[month][r.city]) {
+        photoCount += DATA[month][r.city].files.length;
+      }
+    }
+
+    const pin = document.createElement("div");
+    pin.className = "globe-pin" + (isActive ? "" : " inactive");
+    pin.style.left = pos.left + "%";
+    pin.style.top = pos.top + "%";
+    pin.dataset.city = r.city;
+    pin.dataset.month = r.month;
+
+    pin.innerHTML = `
+      <div class="globe-pin-dot"></div>
+      <div class="globe-pin-label">
+        <span class="globe-pin-icon">&#9679;</span>
+        <span class="globe-pin-count">${photoCount}</span>
+      </div>
+    `;
+
+    // Events
+    pin.addEventListener("mouseenter", () => {
+      const rect = pin.getBoundingClientRect();
+      const mapRect = $journeyMap.getBoundingClientRect();
+      $mapTooltip.textContent = r.city;
+      $mapTooltip.style.left = (rect.left - mapRect.left + rect.width / 2) + "px";
+      $mapTooltip.style.top = (rect.top - mapRect.top - 28) + "px";
+      $mapTooltip.style.transform = "translateX(-50%) translateY(0)";
+      $mapTooltip.classList.add("visible");
+    });
+    pin.addEventListener("mouseleave", () => {
+      $mapTooltip.classList.remove("visible");
+    });
+    pin.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Find which month has this city
+      let targetMonth = r.month;
+      if (DATA[currentMonth] && DATA[currentMonth][r.city]) {
+        targetMonth = currentMonth;
+      }
+      showMapPopup(r.city, targetMonth, pin);
+    });
+
+    $mapPins.appendChild(pin);
+  });
+}
+
+function showMapPopup(city, month, pinEl) {
+  $mapTooltip.classList.remove("visible");
+
+  const cityData = DATA[month][city];
+  if (!cityData) return;
+  const firstImg = cityData.files.find(f => f.t === "I") || cityData.files[0];
+
+  document.getElementById("popupImg").src = thumb(firstImg.id, 400);
+  document.getElementById("popupCity").textContent = city;
+  document.getElementById("popupDate").textContent = cityData.date;
+  document.getElementById("popupBtn").onclick = () => {
+    closeMapPopup();
+    if (currentMonth !== month) {
+      currentMonth = month;
+      renderGlassBar();
+      renderCities();
+      renderMapPins();
+    }
+    setTimeout(() => {
+      toggleCity(city);
+      setTimeout(() => {
+        const row = document.querySelector(`.city-row[data-city="${city}"]`);
+        if (row) row.scrollIntoView({ behavior:"smooth", block:"start" });
+      }, 200);
+    }, 300);
+  };
+
+  const pinRect = pinEl.getBoundingClientRect();
+  const mapRect = $journeyMap.getBoundingClientRect();
+  const x = pinRect.left - mapRect.left + pinRect.width / 2;
+  const y = pinRect.top - mapRect.top;
+
+  $mapPopup.style.left = Math.min(Math.max(x - 110, 10), mapRect.width - 230) + "px";
+  $mapPopup.style.top = Math.max(y - 200, 10) + "px";
+  $mapPopup.classList.add("visible");
+  activePopup = city;
+}
+
+function closeMapPopup() {
+  $mapPopup.classList.remove("visible");
+  activePopup = null;
+}
+
+document.addEventListener("click", (e) => {
+  if (activePopup && !$mapPopup.contains(e.target)) closeMapPopup();
+});
+
+// ═══════════════════════════════════════════════════════════
+// RENDER CITIES
+// ═══════════════════════════════════════════════════════════
+function renderCities() {
+  $citiesFlow.style.opacity = "0";
+  $citiesFlow.style.transform = "translateY(12px)";
+  setTimeout(() => {
+    $citiesFlow.innerHTML = "";
+    const cities = Object.keys(DATA[currentMonth]);
+    cities.forEach((city, i) => {
+      const row = document.createElement("div");
+      row.className = "city-row";
+      row.dataset.city = city;
+      const header = document.createElement("div");
+      header.className = "city-header";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "city-name";
+      nameSpan.textContent = city.toUpperCase();
+      header.appendChild(nameSpan);
+      if (i < cities.length - 1) {
+        const sep = document.createElement("span");
+        sep.className = "city-separator";
+        sep.textContent = "/";
+        header.appendChild(sep);
+      }
+      header.addEventListener("click", () => toggleCity(city));
+      row.appendChild(header);
+      const gridWrap = document.createElement("div");
+      gridWrap.className = "city-grid-wrapper";
+      // City info block
+      const info = CITY_INFO[city];
+      if (info) {
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "city-info";
+        infoDiv.innerHTML = `
+          <div class="city-info-map">
+            ${miniMapSVG(info.country)}
+          </div>
+          <div class="city-info-text">
+            <div class="city-info-country">${info.country}</div>
+            <div class="city-info-facts">${info.facts}</div>
+          </div>`;
+        gridWrap.appendChild(infoDiv);
+      }
+      const grid = document.createElement("div");
+      grid.className = "city-grid";
+      gridWrap.appendChild(grid);
+      row.appendChild(gridWrap);
+      $citiesFlow.appendChild(row);
+    });
+    requestAnimationFrame(() => {
+      $citiesFlow.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+      $citiesFlow.style.opacity = "1";
+      $citiesFlow.style.transform = "translateY(0)";
+    });
+    if (expandedCity && DATA[currentMonth][expandedCity]) {
+      setTimeout(() => toggleCity(expandedCity), 100);
+    }
+  }, 250);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOGGLE CITY
+// ═══════════════════════════════════════════════════════════
+function toggleCity(city) {
+  const wasExpanded = expandedCity === city;
+  if (expandedCity) {
+    const oldRow = document.querySelector(`.city-row[data-city="${expandedCity}"]`);
+    if (oldRow) {
+      oldRow.classList.remove("expanded");
+      const oldWrap = oldRow.querySelector(".city-grid-wrapper");
+      oldWrap.style.maxHeight = oldWrap.scrollHeight + "px";
+      requestAnimationFrame(() => { oldWrap.style.maxHeight = "0"; });
+      oldRow.querySelector(".city-name").classList.remove("active");
+    }
+  }
+  if (wasExpanded) { expandedCity = null; return; }
+  expandedCity = city;
+  const row = document.querySelector(`.city-row[data-city="${city}"]`);
+  if (!row) return;
+  row.classList.add("expanded");
+  row.querySelector(".city-name").classList.add("active");
+  const gridWrap = row.querySelector(".city-grid-wrapper");
+  const grid = gridWrap.querySelector(".city-grid");
+  if (grid.children.length === 0) {
+    const files = DATA[currentMonth][city].files;
+    files.forEach((file, idx) => {
+      const div = document.createElement("div");
+      div.className = "grid-item";
+      const img = document.createElement("img");
+      img.loading = "lazy"; img.alt = "";
+      img.src = thumb(file.id, 800);
+      img.onerror = function(){ this.style.display="none"; this.parentElement.classList.add("loading-placeholder"); };
+      div.appendChild(img);
+      if (file.t === "V") {
+        const badge = document.createElement("div");
+        badge.className = "video-badge";
+        div.appendChild(badge);
+      }
+      div.addEventListener("click", () => openLightbox(files, idx));
+      grid.appendChild(div);
+    });
+  }
+  gridWrap.style.maxHeight = "0";
+  requestAnimationFrame(() => {
+    gridWrap.style.maxHeight = gridWrap.scrollHeight + 5000 + "px";
+    const items = grid.querySelectorAll(".grid-item");
+    items.forEach((item, idx) => {
+      item.classList.remove("revealed");
+      setTimeout(() => item.classList.add("revealed"), 30 * idx);
+    });
+  });
+  setTimeout(() => { row.scrollIntoView({ behavior:"smooth", block:"start" }); }, 150);
+}
+
+// ═══════════════════════════════════════════════════════════
+// LIGHTBOX
+// ═══════════════════════════════════════════════════════════
+function openLightbox(files, index) {
+  lightboxFiles = files; lightboxIndex = index;
+  showLightboxItem();
+  $lightbox.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function closeLightbox() {
+  $lightbox.classList.remove("open");
+  document.body.style.overflow = "";
+  setTimeout(() => { $lbContent.innerHTML = ""; }, 400);
+}
+function showLightboxItem() {
+  const file = lightboxFiles[lightboxIndex];
+  $lbContent.innerHTML = "";
+  if (file.t === "V") {
+    const iframe = document.createElement("iframe");
+    iframe.src = videoPreview(file.id);
+    iframe.allow = "autoplay";
+    iframe.setAttribute("allowfullscreen","");
+    $lbContent.appendChild(iframe);
+  } else {
+    const img = document.createElement("img");
+    img.src = thumb(file.id, 1920); img.alt = "";
+    $lbContent.appendChild(img);
+  }
+  $lbCounter.textContent = `${lightboxIndex+1} / ${lightboxFiles.length}`;
+}
+function lightboxPrev() { lightboxIndex = (lightboxIndex-1+lightboxFiles.length)%lightboxFiles.length; showLightboxItem(); }
+function lightboxNext() { lightboxIndex = (lightboxIndex+1)%lightboxFiles.length; showLightboxItem(); }
+
+document.getElementById("lbClose").addEventListener("click", closeLightbox);
+document.getElementById("lbPrev").addEventListener("click", lightboxPrev);
+document.getElementById("lbNext").addEventListener("click", lightboxNext);
+$lightbox.addEventListener("click", e => { if(e.target===$lightbox) closeLightbox(); });
+document.addEventListener("keydown", e => {
+  if(!$lightbox.classList.contains("open")) return;
+  if(e.key==="Escape") closeLightbox();
+  if(e.key==="ArrowLeft") lightboxPrev();
+  if(e.key==="ArrowRight") lightboxNext();
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(function init() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "dark") document.documentElement.classList.add("dark");
+  renderDotMatrix();
+  renderGlassBar();
+  renderCities();
+  renderMapPins();
+})();
+</script>
+</body>
+</html>
