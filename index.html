@@ -24,6 +24,25 @@
     --pin-active: #000000;
     --pin-inactive: #CCCCCC;
     --route-color: #000000;
+    /* Spacing scale (4pt grid) */
+    --s-1: 4px;  --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
+    --s-5: 24px; --s-6: 32px;  --s-7: 40px;  --s-8: 48px;
+    --gutter: 48px;
+    --content-max: 1440px;
+    /* Radius tokens */
+    --r-sm: 6px;  --r-md: 12px; --r-lg: 16px; --r-xl: 24px;
+    --r-pill: 9999px;
+    /* Shadow tokens (light) */
+    --shadow-sm: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 30px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,0.14);
+    --shadow-hover: 0 8px 30px rgba(0,0,0,0.15);
+    /* Motion */
+    --ease: cubic-bezier(0.4,0,0.2,1);
+    --d-quick: 0.25s;
+    --d-hover: 0.3s;
+    --d-content: 0.5s;
   }
   html.dark {
     --bg: #0D0D0D;
@@ -44,6 +63,12 @@
     --pin-active: #FFFFFF;
     --pin-inactive: #444444;
     --route-color: #FFFFFF;
+    /* Shadow tokens (dark — stronger so cards lift against dark bg) */
+    --shadow-sm: 0 2px 12px rgba(0,0,0,0.5);
+    --shadow-md: 0 4px 30px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+    --shadow-xl: 0 20px 60px rgba(0,0,0,0.5);
+    --shadow-hover: 0 8px 30px rgba(0,0,0,0.55);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html { scroll-behavior:smooth; }
@@ -55,13 +80,32 @@
     overflow-x: hidden;
     min-height: 100vh;
     padding-bottom: 120px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+
+  /* ─── FOCUS STATES (accessibility) ─── */
+  *:focus { outline: none; }
+  *:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  .month-btn:focus-visible,
+  .glass-btn:focus-visible {
+    outline-offset: 1px;
+  }
+  .grid-item:focus-visible {
+    outline-offset: -2px;
   }
 
   /* ─── HEADER (removed, now in glass bar) ─── */
 
   /* ─── JOURNEY MAP (Globe) ─── */
   .journey-map {
-    padding: 40px 54px 20px 54px;
+    padding: var(--s-7) var(--gutter) var(--s-6);
     position: relative;
     overflow: visible;
     transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease, padding 0.5s ease;
@@ -69,6 +113,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    width: 100%;
   }
   .journey-map.collapsed {
     max-height: 0 !important;
@@ -147,6 +194,14 @@
   }
   .globe-pin:hover { transform: translate(-50%, -50%) scale(1.15); }
   .globe-pin.inactive { opacity: 0.35; }
+  .globe-pin.tapped {
+    animation: pinPulse 0.42s var(--ease);
+  }
+  @keyframes pinPulse {
+    0%   { transform: translate(-50%,-50%) scale(1); }
+    40%  { transform: translate(-50%,-50%) scale(1.35); }
+    100% { transform: translate(-50%,-50%) scale(1); }
+  }
   .globe-pin-dot {
     width: 8px;
     height: 8px;
@@ -213,13 +268,13 @@
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
     padding: 0;
     overflow: hidden;
     opacity: 0;
     transform: translateY(8px) scale(0.95);
-    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    transition: all 0.35s var(--ease);
     pointer-events: none;
     z-index: 50;
   }
@@ -240,6 +295,7 @@
   .map-popup-city {
     font-weight: 700;
     font-size: 15px;
+    line-height: 1.2;
     letter-spacing: -0.02em;
     color: var(--text);
     transition: color 0.5s ease;
@@ -247,6 +303,7 @@
   .map-popup-date {
     font-weight: 300;
     font-size: 11px;
+    line-height: 1.3;
     color: var(--text-secondary);
     margin-top: 2px;
     text-transform: uppercase;
@@ -256,17 +313,19 @@
   .map-popup-btn {
     display: inline-block;
     margin-top: 8px;
-    padding: 5px 12px;
-    border-radius: 20px;
+    padding: 6px 12px;
+    border-radius: var(--r-pill);
     background: var(--btn-active-bg);
     color: var(--btn-active-text);
     font-size: 11px;
+    line-height: 1;
     font-weight: 500;
     letter-spacing: 0.03em;
     cursor: pointer;
     border: none;
-    transition: all 0.3s ease;
+    transition: opacity var(--d-hover) var(--ease), transform var(--d-hover) var(--ease);
   }
+  .map-popup-btn:active { transform: scale(0.96); }
   .map-popup-btn:hover { opacity: 0.8; }
 
   /* Map tooltip */
@@ -297,29 +356,39 @@
     z-index: 100;
     display: flex;
     justify-content: center;
-    padding: 16px 54px;
+    padding: var(--s-4) var(--gutter);
+    padding-top: calc(var(--s-4) + env(safe-area-inset-top, 0px));
     pointer-events: none;
   }
   .months-glass {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px;
-    border-radius: 38px;
+    gap: var(--s-1);
+    padding: var(--s-1);
+    border-radius: var(--r-pill);
     background: var(--glass-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 30px var(--glass-shadow), 0 1px 3px var(--glass-shadow);
+    box-shadow: var(--shadow-md);
     pointer-events: all;
-    transition: background 0.6s ease, border 0.6s ease, box-shadow 0.6s ease;
+    transition: background 0.6s ease,
+                border 0.6s ease,
+                box-shadow 0.4s var(--ease),
+                backdrop-filter 0.4s var(--ease);
+    max-width: 100%;
+  }
+  .months-float.scrolled .months-glass {
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(30px) saturate(190%);
+    -webkit-backdrop-filter: blur(30px) saturate(190%);
   }
   /* Profile section in glass bar */
   .bar-profile {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 0 8px 0 4px;
+    gap: var(--s-3);
+    padding: 0 var(--s-2) 0 var(--s-1);
     flex-shrink: 0;
   }
   .bar-avatar {
@@ -332,13 +401,14 @@
   .bar-titles {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--s-3);
     white-space: nowrap;
   }
   .bar-title-main {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 14px;
+    line-height: 1;
     letter-spacing: -0.02em;
     color: var(--text);
     transition: color 0.5s ease;
@@ -353,23 +423,28 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 14px;
+    line-height: 1;
     letter-spacing: -0.02em;
     color: var(--text-secondary);
     transition: color 0.5s ease;
   }
   .month-btn {
     padding: 0 20px;
-    height: 42px;
-    border-radius: 24px;
+    height: 44px;
+    min-height: 44px;
+    border-radius: var(--r-xl);
     border: none;
     background: transparent;
     color: var(--text-secondary);
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-weight: 500;
     font-size: 13px;
+    line-height: 1;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: all 0.45s cubic-bezier(0.4,0,0.2,1);
+    transition: background var(--d-hover) var(--ease),
+                color var(--d-hover) var(--ease),
+                box-shadow var(--d-hover) var(--ease);
     text-transform: uppercase;
     white-space: nowrap;
     display: flex;
@@ -380,7 +455,7 @@
   .month-btn.active {
     background: var(--btn-active-bg);
     color: var(--btn-active-text);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
   }
   .month-icon { display: inline-flex; align-items: center; vertical-align: middle; }
   .month-icon svg { display: block; }
@@ -388,12 +463,12 @@
     width: 1px;
     height: 28px;
     background: var(--glass-border);
-    margin: 0 4px;
+    margin: 0;
     flex-shrink: 0;
     transition: background 0.5s ease;
   }
   .glass-btn {
-    width: 38px; height: 38px;
+    width: 44px; height: 44px;
     border-radius: 50%;
     border: none;
     background: transparent;
@@ -401,51 +476,75 @@
     font-size: 16px;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    transition: background var(--d-hover) var(--ease),
+                color var(--d-hover) var(--ease),
+                transform var(--d-hover) var(--ease);
     flex-shrink: 0;
   }
   .glass-btn:hover {
     color: var(--text);
-    background: rgba(128,128,128,0.1);
+    background: rgba(128,128,128,0.12);
   }
+  .glass-btn:active { transform: scale(0.92); }
   .glass-btn.active-toggle {
     color: var(--text);
+    background: rgba(128,128,128,0.10);
+  }
+  .glass-btn.active-toggle svg { transform: rotate(18deg); }
+  .glass-btn.theme-rotate svg { animation: themeSpin 0.5s var(--ease); }
+  @keyframes themeSpin {
+    from { transform: rotate(-180deg); opacity: 0.3; }
+    to   { transform: rotate(0deg); opacity: 1; }
   }
   .glass-btn svg {
     width: 18px; height: 18px;
-    transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+    transition: transform 0.5s var(--ease);
   }
 
   /* ─── CITIES FLOW ─── */
   .cities-flow {
-    padding: 30px 54px 0 54px;
+    padding: var(--s-6) var(--gutter) 0;
+    max-width: var(--content-max);
+    margin: 0 auto;
   }
-  .city-row { overflow: hidden; }
+  .city-row {
+    overflow: hidden;
+    margin-bottom: var(--s-2);
+    scroll-margin-top: 92px;
+  }
   .city-header {
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;
     cursor: pointer;
-    padding: 4px 0;
+    padding: var(--s-1) 0;
   }
   .city-name {
     font-weight: 700;
     font-size: 78px;
     letter-spacing: -0.05em;
     color: var(--text-secondary);
-    transition: color 0.5s cubic-bezier(0.4,0,0.2,1);
+    transition: color var(--d-hover) var(--ease),
+                transform var(--d-hover) var(--ease);
     white-space: nowrap;
     user-select: none;
     line-height: 1.05;
+    display: inline-block;
   }
-  .city-name:hover { color: var(--text); }
-  .city-name.active { color: var(--text); }
+  .city-name:hover {
+    color: var(--text);
+    transform: translateX(3px);
+  }
+  .city-name.active {
+    color: var(--text);
+    transform: translateX(6px);
+  }
   .city-separator {
     font-weight: 200;
     font-size: 78px;
     letter-spacing: -0.05em;
     color: var(--text-secondary);
-    padding: 0 12px;
+    padding: 0 var(--s-3);
     user-select: none;
     transition: color 0.5s ease;
     line-height: 1.05;
@@ -456,17 +555,17 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 20px;
-    padding: 16px 0 20px 0;
+    gap: var(--s-5);
+    padding: var(--s-4) 0 var(--s-5);
     border-bottom: 1px solid var(--glass-border);
-    margin-bottom: 16px;
+    margin-bottom: var(--s-4);
     transition: border-color 0.5s ease;
   }
   .city-info-map {
     flex-shrink: 0;
     width: 110px;
     height: 110px;
-    border-radius: 16px;
+    border-radius: var(--s-4);
     background: var(--bg-secondary);
     display: flex;
     align-items: center;
@@ -487,6 +586,7 @@
   .city-info-country {
     font-weight: 700;
     font-size: 35px;
+    line-height: 1.1;
     letter-spacing: -0.05em;
     text-transform: uppercase;
     color: var(--text);
@@ -503,6 +603,7 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     transition: color 0.5s ease;
   }
+  html.dark .city-info-facts { color: #6E6E6E; }
 
   /* ─── INLINE GRID ─── */
   .city-grid-wrapper {
@@ -514,22 +615,22 @@
   }
   .city-row.expanded .city-grid-wrapper {
     opacity: 1;
-    padding: 20px 0 30px 0;
+    padding: var(--s-5) 0 var(--s-6);
   }
   .city-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
+    gap: var(--s-2);
   }
   .grid-item {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 6px;
+    border-radius: var(--r-sm);
     overflow: hidden;
     cursor: pointer;
     opacity: 0;
     transform: scale(0.94) translateY(10px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
     background: var(--bg-secondary);
   }
   .grid-item.revealed {
@@ -538,20 +639,23 @@
   }
   .grid-item:hover { transform: scale(1.03); z-index: 2; }
   .grid-item:hover::after { opacity: 1; }
+  .grid-item:active { transform: scale(0.98); }
   .grid-item::after {
     content: '';
     position: absolute; inset: 0;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-    border-radius: 6px;
+    box-shadow: var(--shadow-hover);
+    border-radius: var(--r-sm);
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transition: opacity 0.4s var(--ease);
     pointer-events: none;
   }
   .grid-item img {
     width: 100%; height: 100%;
     object-fit: cover;
-    border-radius: 6px;
-    transition: transform 0.6s cubic-bezier(0.4,0,0.2,1);
+    border-radius: var(--r-sm);
+    transition: transform 0.6s var(--ease);
+    will-change: transform;
+    backface-visibility: hidden;
   }
   .grid-item:hover img { transform: scale(1.06); }
   .video-badge {
@@ -645,34 +749,154 @@
     background: var(--bg-secondary);
     animation: shimmer 1.5s ease-in-out infinite;
   }
-  @keyframes shimmer { 0%,100%{opacity:0.5} 50%{opacity:0.8} }
+  @keyframes shimmer { 0%,100%{opacity:0.6} 50%{opacity:0.9} }
+
+  .grid-item.load-error {
+    background: var(--bg-secondary);
+    animation: none;
+  }
+  .grid-item.load-error::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(45deg, transparent 48%, var(--text-secondary) 48% 52%, transparent 52%),
+      linear-gradient(-45deg, transparent 48%, var(--text-secondary) 48% 52%, transparent 52%);
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* Lightbox content crossfade between photos */
+  .lightbox-content.swap-out {
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+  }
+  .lightbox-content.swap-in {
+    animation: lbSwapIn 0.28s var(--ease);
+  }
+  @keyframes lbSwapIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to   { opacity: 1; transform: scale(1); }
+  }
 
   /* ─── RESPONSIVE ─── */
-  @media (max-width:1200px) {
-    .city-name,.city-separator { font-size:56px; }
-    .city-grid { grid-template-columns: repeat(4,1fr); }
-    .globe { width: 460px; height: 460px; }
+  /* Fluid typography for the cities flow */
+  .city-name, .city-separator {
+    font-size: clamp(34px, 7.2vw, 78px);
   }
-  @media (max-width:768px) {
-    .cities-flow { padding-left:24px; padding-right:24px; }
-    .months-float { padding-left:12px; padding-right:12px; }
-    .journey-map { padding-left:24px; padding-right:24px; }
-    .city-name,.city-separator { font-size:36px; }
+
+  /* Fluid globe sizing — scales with viewport, never cuts off */
+  .globe {
+    width: min(580px, 86vw);
+    height: min(580px, 86vw);
+    max-width: 580px;
+    max-height: 580px;
+  }
+
+  /* Large desktop → 6-col grid is the default. Step down gracefully. */
+  @media (max-width:1200px) {
+    .city-grid { grid-template-columns: repeat(4,1fr); }
+  }
+  @media (max-width:900px) {
     .city-grid { grid-template-columns: repeat(3,1fr); }
-    .month-btn { padding:0 16px; height:40px; font-size:11px; }
-    .months-glass { padding:4px; border-radius:30px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  }
+
+  /* Tablet — glass bar still fits everything, just tighter */
+  @media (max-width:768px) {
+    :root { --gutter: 24px; }
+    .months-float { padding-left: var(--s-3); padding-right: var(--s-3); }
+    .month-btn { padding:0 14px; height:44px; font-size:11px; gap:5px; }
+    .months-glass { padding:4px; border-radius:32px; gap:2px; }
     .bar-title-main { font-size:12px; }
     .bar-title-sub { font-size:12px; }
-    .bar-avatar { width:32px; height:32px; }
-    .bar-profile { gap:8px; }
-    .city-info { flex-direction: column; }
-    .globe { width: 320px; height: 320px; }
-    .globe-pin-label { font-size: 9px; padding: 3px 7px; }
-    .globe-pin-dot { width: 6px; height: 6px; }
+    .bar-avatar { width:34px; height:34px; }
+    .bar-profile { gap:10px; padding:0 6px 0 2px; }
+    .bar-titles { gap:10px; }
+    .glass-btn { width:44px; height:44px; }
+    .glass-sep { margin: 0 2px; }
   }
-  @media (max-width:480px) {
-    .globe { width: 260px; height: 260px; }
+
+  /* Mid-mobile — hide avatar titles, keep pills compact */
+  @media (max-width:640px) {
     .bar-titles { display:none; }
+    .bar-profile { padding: 0 4px 0 2px; gap: 0; }
+    .month-btn { padding: 0 12px; font-size: 10.5px; letter-spacing: 0.02em; }
+    .month-btn .month-icon svg { width: 12px; height: 12px; }
+    .city-info-country { font-size: 26px; }
+    .city-info-facts { font-size: 16px; }
+    .city-info-map { width: 88px; height: 88px; }
+    .city-info-map svg { width: 76px; height: 76px; }
+    .city-info { gap: 14px; padding: 12px 0 16px; }
+  }
+
+  /* Small mobile (≤480) — most compact glass bar, single-column grid */
+  @media (max-width:480px) {
+    :root { --gutter: 16px; }
+    .city-grid { grid-template-columns: repeat(2,1fr); gap: var(--s-1); }
+    .months-float { padding: var(--s-3) var(--s-2); padding-top: calc(var(--s-3) + env(safe-area-inset-top, 0px)); }
+    .months-glass { padding: 3px; gap: 0; }
+    .bar-avatar { width: 32px; height: 32px; }
+    .bar-profile { padding: 0 2px; }
+    .month-btn {
+      padding: 0 10px;
+      height: 44px;
+      font-size: 10px;
+      gap: 4px;
+    }
+    .month-btn .month-icon svg { width: 11px; height: 11px; }
+    .glass-sep { display: none; }
+    .glass-btn { width: 40px; height: 40px; }
+    .glass-btn svg { width: 16px; height: 16px; }
+    .globe-pin-label { font-size: 9px; padding: 3px 7px; }
+    .globe-pin-dot { width: 7px; height: 7px; }
+    .city-info { flex-direction: row; }
+    .lightbox-nav { width: 44px; height: 44px; }
+    .lightbox-prev { left: 8px; }
+    .lightbox-next { right: 8px; }
+    .lightbox-close { top: 12px; right: 12px; }
+  }
+
+  /* Extra-narrow (≤380) — hide avatar, icons-only, give pills breathing room */
+  @media (max-width:380px) {
+    .bar-profile { display: none; }
+    .month-btn { padding: 0 10px; letter-spacing: 0; }
+    .city-info-country { font-size: 22px; }
+    .city-info-facts { font-size: 14px; line-height: 1.4; }
+    .city-info-map { width: 72px; height: 72px; border-radius: 12px; }
+    .city-info-map svg { width: 62px; height: 62px; }
+  }
+
+  /* Ensure touch targets remain ≥ 44px where fingers land */
+  @media (hover: none) and (pointer: coarse) {
+    .globe-pin { padding: 6px; margin: -6px; }
+    .city-header { padding: 10px 0; }
+    .grid-item:hover { transform: none; }
+    .grid-item:hover img { transform: none; }
+  }
+
+  /* Landscape short viewports — don't let globe eat the screen */
+  @media (max-height: 520px) and (orientation: landscape) {
+    .globe { width: min(380px, 70vh); height: min(380px, 70vh); }
+    .journey-map { padding-top: 20px; padding-bottom: 10px; }
+  }
+
+  /* ─── REDUCED MOTION (accessibility) ─── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .map-route.animate { animation: none !important; stroke-dashoffset: 0 !important; }
+    .grid-item:hover,
+    .grid-item:hover img,
+    .city-name:hover,
+    .city-name.active { transform: none !important; }
   }
 </style>
 </head>
@@ -989,11 +1213,16 @@ function renderGlassBar() {
   // Theme toggle
   const themeBtn = document.createElement("button");
   themeBtn.className = "glass-btn";
+  themeBtn.setAttribute("aria-label", "Cambiar tema");
   themeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`;
   themeBtn.addEventListener("click", () => {
     document.documentElement.classList.toggle("dark");
     localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
-    renderGlassBar();
+    // Trigger spin on the icon without re-rendering the whole bar
+    themeBtn.classList.remove("theme-rotate");
+    // force reflow to restart the animation
+    void themeBtn.offsetWidth;
+    themeBtn.classList.add("theme-rotate");
   });
   $monthsGlass.appendChild(themeBtn);
 }
@@ -1184,6 +1413,11 @@ function renderMapPins() {
     });
     pin.addEventListener("click", (e) => {
       e.stopPropagation();
+      // Visual tap feedback
+      pin.classList.remove("tapped");
+      void pin.offsetWidth;
+      pin.classList.add("tapped");
+      setTimeout(() => pin.classList.remove("tapped"), 440);
       // Find which month has this city
       let targetMonth = r.month;
       if (DATA[currentMonth] && DATA[currentMonth][r.city]) {
@@ -1331,18 +1565,32 @@ function toggleCity(city) {
     const files = DATA[currentMonth][city].files;
     files.forEach((file, idx) => {
       const div = document.createElement("div");
-      div.className = "grid-item";
+      div.className = "grid-item loading-placeholder";
+      div.tabIndex = 0;
+      div.setAttribute("role", "button");
+      div.setAttribute("aria-label", `Ver ${file.t === "V" ? "video" : "foto"} ${idx + 1} de ${city}`);
       const img = document.createElement("img");
       img.loading = "lazy"; img.alt = "";
       img.src = thumb(file.id, 800);
-      img.onerror = function(){ this.style.display="none"; this.parentElement.classList.add("loading-placeholder"); };
+      img.addEventListener("load", () => {
+        div.classList.remove("loading-placeholder");
+      });
+      img.addEventListener("error", () => {
+        img.style.display = "none";
+        div.classList.remove("loading-placeholder");
+        div.classList.add("load-error");
+      });
       div.appendChild(img);
       if (file.t === "V") {
         const badge = document.createElement("div");
         badge.className = "video-badge";
         div.appendChild(badge);
       }
-      div.addEventListener("click", () => openLightbox(files, idx));
+      const openLb = () => openLightbox(files, idx);
+      div.addEventListener("click", openLb);
+      div.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLb(); }
+      });
       grid.appendChild(div);
     });
   }
@@ -1372,24 +1620,42 @@ function closeLightbox() {
   document.body.style.overflow = "";
   setTimeout(() => { $lbContent.innerHTML = ""; }, 400);
 }
-function showLightboxItem() {
-  const file = lightboxFiles[lightboxIndex];
-  $lbContent.innerHTML = "";
-  if (file.t === "V") {
-    const iframe = document.createElement("iframe");
-    iframe.src = videoPreview(file.id);
-    iframe.allow = "autoplay";
-    iframe.setAttribute("allowfullscreen","");
-    $lbContent.appendChild(iframe);
+function showLightboxItem(direction) {
+  const render = () => {
+    const file = lightboxFiles[lightboxIndex];
+    $lbContent.innerHTML = "";
+    if (file.t === "V") {
+      const iframe = document.createElement("iframe");
+      iframe.src = videoPreview(file.id);
+      iframe.allow = "autoplay";
+      iframe.setAttribute("allowfullscreen","");
+      $lbContent.appendChild(iframe);
+    } else {
+      const img = document.createElement("img");
+      img.src = thumb(file.id, 1920); img.alt = "";
+      $lbContent.appendChild(img);
+    }
+    $lbCounter.textContent = `${lightboxIndex+1} / ${lightboxFiles.length}`;
+    $lbContent.classList.remove("swap-out", "swap-in");
+    void $lbContent.offsetWidth;
+    $lbContent.classList.add("swap-in");
+  };
+  if (direction) {
+    $lbContent.classList.remove("swap-in");
+    $lbContent.classList.add("swap-out");
+    setTimeout(render, 180);
   } else {
-    const img = document.createElement("img");
-    img.src = thumb(file.id, 1920); img.alt = "";
-    $lbContent.appendChild(img);
+    render();
   }
-  $lbCounter.textContent = `${lightboxIndex+1} / ${lightboxFiles.length}`;
 }
-function lightboxPrev() { lightboxIndex = (lightboxIndex-1+lightboxFiles.length)%lightboxFiles.length; showLightboxItem(); }
-function lightboxNext() { lightboxIndex = (lightboxIndex+1)%lightboxFiles.length; showLightboxItem(); }
+function lightboxPrev() {
+  lightboxIndex = (lightboxIndex-1+lightboxFiles.length)%lightboxFiles.length;
+  showLightboxItem("prev");
+}
+function lightboxNext() {
+  lightboxIndex = (lightboxIndex+1)%lightboxFiles.length;
+  showLightboxItem("next");
+}
 
 document.getElementById("lbClose").addEventListener("click", closeLightbox);
 document.getElementById("lbPrev").addEventListener("click", lightboxPrev);
@@ -1412,6 +1678,20 @@ document.addEventListener("keydown", e => {
   renderGlassBar();
   renderCities();
   renderMapPins();
+
+  // Scroll elevation — lift glass bar when page scrolls past zero
+  const $float = document.getElementById("monthsFloat");
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      $float.classList.toggle("scrolled", window.scrollY > 4);
+      ticking = false;
+    });
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 })();
 </script>
 </body>
