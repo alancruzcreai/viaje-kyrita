@@ -339,7 +339,7 @@ html,body {
 }
 .reel-caption strong { font-weight: 700; }
 
-/* ── iframe fallback clip (hides Drive chrome) ── */
+/* ── Drive iframe clip (hides Drive's header + controls bar) ── */
 .reel-iframe-clip {
   position: absolute; inset: 0; overflow: hidden; z-index: 1;
   background: #000;
@@ -347,11 +347,23 @@ html,body {
 .reel-iframe-clip iframe {
   position: absolute; left: 0; right: 0;
   width: 100%;
-  /* Extend frame to hide Drive header (~50px) and controls (~60px) */
-  height: calc(100% + 120px);
-  top: -50px;
+  /* Extend frame: pulls header (~50px) above viewport, push controls
+     (~60px) below — so only the video pixels are visible */
+  height: calc(100% + 130px);
+  top: -55px;
   border: none;
-  pointer-events: none; /* allow our overlay to handle gestures */
+  /* pointer-events: auto so user can tap Drive's player (center of video)
+     to play/pause if autoplay didn't fire. Sidebar/footer have higher
+     z-index and own pointer-events so they always win for like/follow. */
+  pointer-events: auto;
+}
+
+/* ── Heart pulse animation for double-tap like ── */
+@keyframes heartPulse {
+  0%   { transform: translate(-50%,-50%) scale(0); opacity: 0; }
+  20%  { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
+  60%  { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1.4); opacity: 0; }
 }
 .reel-progress {
   position: absolute; top: 0; left: 0; right: 0;
@@ -619,51 +631,7 @@ html,body {
 }
 @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
 
-/* ─── VIDEO PLAYER CONTROLS ─── */
-.reel-video-wrap {
-  position: absolute; inset: 0; z-index: 1;
-}
-.reel-video-wrap video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.reel-video-progress {
-  position: absolute; bottom: 0; left: 0; right: 0; z-index: 7; height: 2px;
-  background: rgba(255,255,255,0.18);
-}
-.reel-video-progress-bar {
-  height: 100%; background: rgba(255,255,255,0.85); width: 0;
-  transition: width 0.25s linear;
-}
-.pp-overlay {
-  position: absolute; inset: 0; z-index: 6;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
-}
-.pp-icon {
-  width: 68px; height: 68px; border-radius: 50%;
-  background: rgba(0,0,0,0.38); backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border: 1.5px solid rgba(255,255,255,0.28);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; transform: scale(0.75);
-  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease-bounce);
-}
-.pp-icon svg { width: 28px; height: 28px; }
-.pp-overlay.show .pp-icon { opacity: 1; transform: scale(1); }
-.seek-flash {
-  position: absolute; top: 50%; z-index: 6; transform: translateY(-50%);
-  padding: 10px 20px; border-radius: var(--r-pill);
-  background: rgba(0,0,0,0.48); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: white; font-size: 14px; font-weight: 700;
-  letter-spacing: 0.01em;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.15s;
-  display: flex; align-items: center; gap: 6px;
-}
-.seek-flash.left { left: 20px; }
-.seek-flash.right { right: 20px; }
-.seek-flash.show { opacity: 1; }
+/* (Old <video> player UI removed — Drive iframe owns video controls now) */
 /* ── Light mode toggle (in reels topbar) ── */
 .theme-toggle-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -1271,151 +1239,83 @@ function buildReelFeed() {
 }
 const REEL_FEED = buildReelFeed();
 
-// ─── Video item builder — Instagram Reels style ──────────────────
-// Strategy: always try <video> first with drive.usercontent.google.com
-// (bypasses HTML antivirus-scan page, returns actual video bytes on iOS).
-// Retry with classic URL on first error. Iframe fallback on second error.
-// <video muted loop playsinline> autoplays via IntersectionObserver.
+// ─── Video item builder — Drive iframe with CSS clipping ─────────
+// Strategy: Drive's /preview endpoint is the only reliable path. Direct
+// <video src=drive.google.com> hangs (HTML antivirus page, no error event
+// fires, locks the UI). So we go iframe-only:
+//   • Lazy-insert iframe when reel scrolls into view (Drive autoplays)
+//   • CSS clip hides Drive's header (~50px) and controls bar (~60px)
+//   • Remove iframe when reel leaves view (stops audio + frees memory)
+//   • Tap actions are cosmetic — Drive iframe is opaque, can't be paused
+//     programmatically. Scroll = next video (TikTok-style).
 function buildVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
-  // ── 1. Thumbnail (instant visual, fades out when video loads) ──
+  // ── 1. Thumbnail (instant visual, fades when iframe loads) ──
   const thumbDiv = document.createElement("div");
   thumbDiv.className = "reel-thumb";
   thumbDiv.style.backgroundImage = `url(${thumb(v.id, 800)})`;
   item.appendChild(thumbDiv);
 
-  // ── 2. Video element ──────────────────────────────────────────
-  let videoEl = null, isPaused = false, muted = true;
-  const VIDEO_SRCS = [
-    // drive.usercontent.google.com is Google's current CDN for downloads —
-    // returns actual bytes (not HTML redirect) for publicly shared files
-    `https://drive.usercontent.google.com/download?id=${v.id}&export=download&authuser=0&confirm=t`,
-    `https://drive.google.com/uc?id=${v.id}&export=download&confirm=t`,
-  ];
-  let srcIdx = 0;
+  // ── 2. Drive iframe (lazy lifecycle) ────────────────────────
+  let clipEl = null, loadTimer = null;
 
-  function ensureVideo(preload) {
-    if (videoEl) { videoEl.preload = preload; return; }
-    videoEl = document.createElement("video");
-    videoEl.muted = true;            // REQUIRED for autoplay on iOS/Android
-    videoEl.loop = true;
-    videoEl.playsInline = true;
-    videoEl.setAttribute("webkit-playsinline", "");
-    videoEl.setAttribute("playsinline", "");
-    videoEl.preload = preload;       // "metadata" for lookahead, "auto" for active
-    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
-    videoEl.src = VIDEO_SRCS[0];
+  function insertIframe() {
+    if (clipEl) return;
+    clipEl = document.createElement("div");
+    clipEl.className = "reel-iframe-clip";
 
-    videoEl.addEventListener("canplay", () => {
-      thumbDiv.style.transition = "opacity 0.35s";
-      thumbDiv.style.opacity = "0";
-    }, { once: true });
-
-    videoEl.addEventListener("timeupdate", () => {
-      if (videoEl.duration)
-        progressBar.style.width = `${(videoEl.currentTime / videoEl.duration) * 100}%`;
-    });
-
-    // On error: try next URL variant, then fall back to iframe
-    videoEl.addEventListener("error", function retry() {
-      srcIdx++;
-      if (srcIdx < VIDEO_SRCS.length) {
-        videoEl.src = VIDEO_SRCS[srcIdx];
-        videoEl.load();
-      } else {
-        videoEl.removeEventListener("error", retry);
-        videoEl.remove(); videoEl = null;
-        buildIframeFallback();
-      }
-    });
-
-    item.insertBefore(videoEl, thumbDiv.nextSibling);
-  }
-
-  function buildIframeFallback() {
-    if (item.querySelector(".reel-iframe-clip")) return;
-    const clip = document.createElement("div");
-    clip.className = "reel-iframe-clip";
     const ifr = document.createElement("iframe");
-    // Clipped iframe hides Drive header/controls; pointer-events:none on
-    // the iframe itself so our overlay still handles gestures
     ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
-    ifr.allow = "autoplay; fullscreen";
+    ifr.allow = "autoplay; fullscreen; encrypted-media";
     ifr.setAttribute("allowfullscreen", "");
-    clip.appendChild(ifr);
+    ifr.setAttribute("loading", "eager");
+    clipEl.appendChild(ifr);
+
     ifr.addEventListener("load", () => {
-      thumbDiv.style.transition = "opacity 0.5s";
+      clearTimeout(loadTimer);
+      thumbDiv.style.transition = "opacity 0.45s ease";
       thumbDiv.style.opacity = "0";
     });
-    item.insertBefore(clip, thumbDiv.nextSibling);
+
+    // Hard timeout: if Drive doesn't load in 8s, give up gracefully
+    loadTimer = setTimeout(() => {
+      if (clipEl) {
+        thumbDiv.style.opacity = "1";
+        const note = document.createElement("div");
+        note.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:10px 18px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border-radius:24px;color:white;font-size:13px;z-index:5;";
+        note.textContent = "Cargando lento — desliza ↓ para siguiente";
+        item.appendChild(note);
+        setTimeout(() => note.remove(), 3000);
+      }
+    }, 8000);
+
+    item.insertBefore(clipEl, thumbDiv.nextSibling);
   }
 
-  // Expose lifecycle hooks called by IntersectionObserver
-  item._preload = () => ensureVideo("metadata");  // buffer metadata + first frames
-  item._play = () => {
-    ensureVideo("auto");
-    if (videoEl) videoEl.play().catch(() => {});
-    isPaused = false;
-  };
-  item._pause = () => { if (videoEl) { videoEl.pause(); isPaused = true; } };
-
-  // ── 3. Progress bar ───────────────────────────────────────────
-  const progressWrap = document.createElement("div");
-  progressWrap.className = "reel-video-progress";
-  const progressBar = document.createElement("div");
-  progressBar.className = "reel-video-progress-bar";
-  progressWrap.appendChild(progressBar);
-  item.appendChild(progressWrap);
-
-  // ── 4. Play/pause flash overlay (center) ─────────────────────
-  const ppOverlay = document.createElement("div");
-  ppOverlay.className = "pp-overlay";
-  const ppIcon = document.createElement("div");
-  ppIcon.className = "pp-icon";
-  ppOverlay.appendChild(ppIcon);
-  item.appendChild(ppOverlay);
-
-  // Seek flash indicators
-  const seekL = document.createElement("div");
-  seekL.className = "seek-flash left";
-  seekL.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="11,5 2,12 11,19"/><polygon points="21,5 12,12 21,19"/></svg> 10s`;
-  const seekR = document.createElement("div");
-  seekR.className = "seek-flash right";
-  seekR.innerHTML = `10s <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="3,5 12,12 3,19"/><polygon points="13,5 22,12 13,19"/></svg>`;
-  item.appendChild(seekL); item.appendChild(seekR);
-
-  function flashSeek(el) { el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 700); }
-  function showPP(paused) {
-    ppIcon.innerHTML = paused
-      ? `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`
-      : `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
-    ppOverlay.classList.add("show");
-    setTimeout(() => ppOverlay.classList.remove("show"), 750);
+  function removeIframe() {
+    clearTimeout(loadTimer);
+    if (!clipEl) return;
+    clipEl.remove();
+    clipEl = null;
+    thumbDiv.style.transition = "opacity 0.2s";
+    thumbDiv.style.opacity = "1";
   }
 
-  // ── 5. Instagram-style RIGHT SIDEBAR ─────────────────────────
-  const svgMuteOn  = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
-  const svgMuteOff = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+  // Lifecycle hooks called by IntersectionObserver in renderReels():
+  //   _preload — peer reel coming up next, prep iframe
+  //   _play    — this reel is current, ensure iframe present (autoplays)
+  //   _pause   — reel left view, kill iframe (stops audio, frees memory)
+  item._preload = insertIframe;
+  item._play    = insertIframe;
+  item._pause   = removeIframe;
 
+  // ── 3. Instagram-style RIGHT SIDEBAR (cosmetic interactions) ──
   const sidebar = document.createElement("div");
   sidebar.className = "reel-sidebar";
 
-  // Mute toggle
-  const muteBtn = document.createElement("button");
-  muteBtn.className = "reel-sidebar-mute";
-  muteBtn.innerHTML = svgMuteOff; // starts muted
-  muteBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    muted = !muted;
-    if (videoEl) videoEl.muted = muted;
-    muteBtn.innerHTML = muted ? svgMuteOff : svgMuteOn;
-  });
-  sidebar.appendChild(muteBtn);
-
-  // Action helper
   function makeAction(svgInner, count) {
     const btn = document.createElement("div");
     btn.className = "reel-action";
@@ -1432,16 +1332,12 @@ function buildVideoItem(v, feedIdx) {
     likeBtn.querySelector("svg").style.stroke = liked ? "#FF3B30" : "white";
   });
   sidebar.appendChild(likeBtn);
-  // Comment 💬
   sidebar.appendChild(makeAction(`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`, ""));
-  // Repost 🔁
   sidebar.appendChild(makeAction(`<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`, ""));
-  // Send ➤
   sidebar.appendChild(makeAction(`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`, ""));
-
   item.appendChild(sidebar);
 
-  // ── 6. Instagram-style BOTTOM FOOTER ─────────────────────────
+  // ── 4. Instagram-style BOTTOM FOOTER ─────────────────────────
   const footer = document.createElement("div");
   footer.className = "reel-footer";
 
@@ -1475,47 +1371,22 @@ function buildVideoItem(v, feedIdx) {
   footer.appendChild(caption);
   item.appendChild(footer);
 
-  // ── 7. Touch controls (tap=play/pause, double-tap=seek, hold=seek) ──
-  let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
-
-  item.addEventListener("touchstart", e => {
-    if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
-    touchX0 = e.touches[0].clientX;
-    if (!videoEl) return;
-    holdTimer = setTimeout(() => {
-      holdSeeking = true;
-      const goLeft = touchX0 < item.offsetWidth / 2;
-      (function loop() {
-        if (!holdSeeking || !videoEl) return;
-        videoEl.currentTime = goLeft
-          ? Math.max(0, videoEl.currentTime - 2)
-          : Math.min(videoEl.duration || 9999, videoEl.currentTime + 2);
-        goLeft ? flashSeek(seekL) : flashSeek(seekR);
-        setTimeout(loop, 200);
-      })();
-    }, 480);
-  }, { passive: true });
-
+  // ── 5. Double-tap to like (TikTok-style heart pulse) ──
+  let lastTap = 0;
   item.addEventListener("touchend", e => {
     if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
-    clearTimeout(holdTimer);
-    const wasHold = holdSeeking; holdSeeking = false;
-    if (wasHold) return;
-    if (!videoEl) return;
-    const now = Date.now(), x = e.changedTouches[0].clientX;
-    const diff = now - lastTap;
-    if (diff < 300 && diff > 30) {
-      // Double-tap: seek ±10 s
-      if (x < item.offsetWidth / 2) { videoEl.currentTime = Math.max(0, videoEl.currentTime - 10); flashSeek(seekL); }
-      else { videoEl.currentTime = Math.min(videoEl.duration || 9999, videoEl.currentTime + 10); flashSeek(seekR); }
+    const now = Date.now();
+    if (now - lastTap < 300 && now - lastTap > 30) {
+      // Double-tap: animate big heart in center + activate like
+      if (!liked) likeBtn.click();
+      const heart = document.createElement("div");
+      heart.style.cssText = "position:absolute;top:50%;left:50%;z-index:6;pointer-events:none;animation:heartPulse 0.7s ease-out forwards;";
+      heart.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="#FF3B30" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.4))"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      item.appendChild(heart);
+      setTimeout(() => heart.remove(), 700);
       lastTap = 0;
     } else {
       lastTap = now;
-      setTimeout(() => {
-        if (Date.now() - now < 280) return;
-        if (isPaused) { item._play(); showPP(false); }
-        else { item._pause(); showPP(true); }
-      }, 300);
     }
   }, { passive: true });
 
@@ -1646,13 +1517,11 @@ function renderReels(startIdx) {
         el._play && el._play();
         currentReelIdx = parseInt(el.dataset.idx);
 
-        // ── Preload N+1 and N+2 while user watches current reel ──
-        // On local: <video preload="metadata"> starts buffering headers + first frames
-        // On remote: no-op (can't preload cross-origin iframes meaningfully)
-        [1, 2].forEach(offset => {
-          const next = allItems[currentReelIdx + offset];
-          if (next && next._preload) next._preload();
-        });
+        // ── Preload only N+1 (next reel) ──
+        // Avoid N+2 because each iframe is a full Drive page load — too many
+        // concurrent iframes throttle Drive and kill battery on mobile.
+        const next = allItems[currentReelIdx + 1];
+        if (next && next._preload) next._preload();
 
         // Update counter and progress dots
         const vidsSoFar = REEL_FEED.slice(0, currentReelIdx + 1).filter(f => f.type === "video").length;
