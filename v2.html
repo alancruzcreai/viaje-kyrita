@@ -1122,25 +1122,29 @@ function buildReelFeed() {
 }
 const REEL_FEED = buildReelFeed();
 
+// ─── Environment detection ───────────────────────────────────────
+// On localhost/LAN the Python proxy serves /video/<id> as a real
+// streamable video — full <video> element with all TikTok controls.
+// On GitHub Pages (no proxy) we fall back to a Drive iframe.
+const IS_LOCAL = (function() {
+  const h = location.hostname;
+  return h === "localhost" || h === "127.0.0.1" || /^192\.168\./.test(h) || /^10\./.test(h);
+})();
+
 // ─── Video item builder ───
 function buildVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
-  // Thumbnail placeholder
+  // ── Thumbnail (shown instantly, fades when video loads) ──────
   const thumbDiv = document.createElement("div");
-  thumbDiv.className = "reel-thumb shimmer";
-  const tImg = new Image();
-  tImg.onload = () => { thumbDiv.style.backgroundImage = `url(${tImg.src})`; thumbDiv.classList.remove("shimmer"); };
-  tImg.onerror = () => thumbDiv.classList.remove("shimmer");
-  tImg.src = thumb(v.id, 800);
+  thumbDiv.className = "reel-thumb";
+  // Set immediately with Drive's thumbnail CDN — no waiting for onload
+  thumbDiv.style.backgroundImage = `url(${thumb(v.id, 800)})`;
   item.appendChild(thumbDiv);
 
-  // State
-  let videoEl = null, muted = true, isPaused = false;
-
-  // Progress bar
+  // ── Progress bar ─────────────────────────────────────────────
   const progressWrap = document.createElement("div");
   progressWrap.className = "reel-video-progress";
   const progressBar = document.createElement("div");
@@ -1148,46 +1152,75 @@ function buildVideoItem(v, feedIdx) {
   progressWrap.appendChild(progressBar);
   item.appendChild(progressWrap);
 
-  function ensureVideo() {
-    if (videoEl) return videoEl;
+  // ═══════════════════════════════════════════════════════════════
+  // PATH A — LOCAL: use proxy → native <video> with full controls
+  // ═══════════════════════════════════════════════════════════════
+  let videoEl = null, muted = true, isPaused = false;
+
+  function buildVideoEl(preloadMode) {
+    if (videoEl) { videoEl.preload = preloadMode; return videoEl; }
     videoEl = document.createElement("video");
-    // Drive download URL — works for publicly shared files
-    videoEl.src = `https://drive.google.com/uc?id=${v.id}&export=download&confirm=t`;
+    videoEl.src = `/video/${v.id}`;   // ← Python proxy, no redirects
     videoEl.playsInline = true;
-    videoEl.setAttribute("webkit-playsinline","");
-    videoEl.muted = true; videoEl.preload = "none"; videoEl.loop = true;
-    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;";
-    videoEl.addEventListener("loadeddata", () => { thumbDiv.style.opacity = "0"; }, {once:true});
+    videoEl.setAttribute("webkit-playsinline", "");
+    videoEl.muted = true;
+    videoEl.loop = true;
+    videoEl.preload = preloadMode;    // "metadata" for preload, "auto" for active
+    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
+    videoEl.addEventListener("canplay", () => {
+      thumbDiv.style.transition = "opacity 0.4s";
+      thumbDiv.style.opacity = "0";
+    }, { once: true });
     videoEl.addEventListener("timeupdate", () => {
-      if (videoEl.duration) progressBar.style.width = `${(videoEl.currentTime/videoEl.duration)*100}%`;
+      if (videoEl.duration)
+        progressBar.style.width = `${(videoEl.currentTime / videoEl.duration) * 100}%`;
     });
-    // Fallback: if Drive download fails, use Drive preview iframe
+    // On proxy error: fall back to Drive iframe gracefully
     videoEl.addEventListener("error", () => {
       videoEl.remove(); videoEl = null;
-      const iWrap = document.createElement("div");
-      iWrap.style.cssText = "position:absolute;inset:0;z-index:1;";
-      const ifr = document.createElement("iframe");
-      ifr.src = `https://drive.google.com/file/d/${v.id}/preview?autoplay=1`;
-      ifr.allow = "autoplay; fullscreen"; ifr.allowFullscreen = true;
-      ifr.style.cssText = "width:100%;height:100%;border:none;";
-      iWrap.appendChild(ifr);
-      item.insertBefore(iWrap, thumbDiv.nextSibling);
-      thumbDiv.style.opacity = "0";
-    }, {once:true});
+      _buildIframe();
+    }, { once: true });
     item.insertBefore(videoEl, thumbDiv.nextSibling);
     return videoEl;
   }
 
-  function playV() {
-    const ve = ensureVideo(); ve.preload = "auto";
-    ve.play().catch(() => {}); isPaused = false;
+  function _buildIframe() {
+    if (item.querySelector("iframe")) return;
+    const ifr = document.createElement("iframe");
+    ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
+    ifr.allow = "autoplay; fullscreen";
+    ifr.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:none;z-index:1;";
+    ifr.addEventListener("load", () => {
+      thumbDiv.style.transition = "opacity 0.6s";
+      thumbDiv.style.opacity = "0";
+    });
+    item.insertBefore(ifr, thumbDiv.nextSibling);
   }
-  function pauseV() { if (videoEl) { videoEl.pause(); isPaused = true; } }
+
+  // _preload: called for N+1 / N+2 — start buffering before user swipes
+  item._preload = IS_LOCAL
+    ? () => buildVideoEl("metadata")   // metadata = first frames + duration, cheap
+    : () => {};                         // iframe path: preload not possible cross-origin
+
+  function playV() {
+    if (!IS_LOCAL) { _buildIframe(); return; }
+    const ve = buildVideoEl("auto");
+    ve.preload = "auto";
+    ve.play().catch(() => {});
+    isPaused = false;
+  }
+  function pauseV()  { if (videoEl) { videoEl.pause(); isPaused = true; } }
   function unloadV() {
     if (videoEl) { videoEl.pause(); videoEl.src = ""; videoEl.remove(); videoEl = null; }
-    isPaused = false; thumbDiv.style.opacity = "1"; progressBar.style.width = "0";
+    isPaused = false;
+    thumbDiv.style.opacity = "1";
+    progressBar.style.width = "0";
   }
   item._play = playV; item._pause = pauseV; item._unload = unloadV;
+
+  // ═══════════════════════════════════════════════════════════════
+  // CONTROLS (only fully functional on local/proxy path)
+  // ═══════════════════════════════════════════════════════════════
 
   // Play/pause overlay
   const ppOverlay = document.createElement("div");
@@ -1198,7 +1231,7 @@ function buildVideoItem(v, feedIdx) {
   ppOverlay.appendChild(ppIcon);
   item.appendChild(ppOverlay);
 
-  // Seek overlays
+  // Seek flash indicators
   const seekL = document.createElement("div");
   seekL.className = "seek-flash left";
   seekL.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="11,5 2,12 11,19"/><polygon points="21,5 12,12 21,19"/></svg> 10s`;
@@ -1207,12 +1240,12 @@ function buildVideoItem(v, feedIdx) {
   seekR.innerHTML = `10s <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="3,5 12,12 3,19"/><polygon points="13,5 22,12 13,19"/></svg>`;
   item.appendChild(seekL); item.appendChild(seekR);
 
-  // Mute toggle
+  // Mute button
   const muteBtn = document.createElement("button");
   muteBtn.className = "reel-mute-btn";
-  const svgMuteOn = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+  const svgMuteOn  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
   const svgMuteOff = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
-  muteBtn.innerHTML = svgMuteOff; // starts muted
+  muteBtn.innerHTML = svgMuteOff;
   muteBtn.addEventListener("click", e => {
     e.stopPropagation();
     if (!videoEl) return;
@@ -1221,7 +1254,7 @@ function buildVideoItem(v, feedIdx) {
   });
   item.appendChild(muteBtn);
 
-  // TikTok touch controls
+  // TikTok touch controls (tap / double-tap / long-press)
   let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
 
   function flashSeek(el) { el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 700); }
@@ -1235,6 +1268,7 @@ function buildVideoItem(v, feedIdx) {
 
   item.addEventListener("touchstart", e => {
     touchX0 = e.touches[0].clientX;
+    if (!IS_LOCAL || !videoEl) return;
     holdTimer = setTimeout(() => {
       holdSeeking = true;
       const goLeft = touchX0 < item.offsetWidth / 2;
@@ -1247,16 +1281,17 @@ function buildVideoItem(v, feedIdx) {
         setTimeout(loop, 200);
       })();
     }, 480);
-  }, {passive:true});
+  }, { passive: true });
 
   item.addEventListener("touchend", e => {
     clearTimeout(holdTimer);
     const wasHold = holdSeeking; holdSeeking = false;
     if (wasHold) return;
+    if (!IS_LOCAL || !videoEl) return;
     const now = Date.now(), x = e.changedTouches[0].clientX;
     const diff = now - lastTap;
-    if (diff < 300 && diff > 30 && videoEl) {
-      // Double-tap seek
+    if (diff < 300 && diff > 30) {
+      // Double-tap seek ±10 s
       if (x < item.offsetWidth / 2) { videoEl.currentTime = Math.max(0, videoEl.currentTime - 10); flashSeek(seekL); }
       else { videoEl.currentTime = Math.min(videoEl.duration || 9999, videoEl.currentTime + 10); flashSeek(seekR); }
       lastTap = 0;
@@ -1267,7 +1302,7 @@ function buildVideoItem(v, feedIdx) {
         if (isPaused) { playV(); showPP(false); } else { pauseV(); showPP(true); }
       }, 300);
     }
-  }, {passive:true});
+  }, { passive: true });
 
   // City + date info
   const info = document.createElement("div");
@@ -1391,14 +1426,26 @@ function renderReels(startIdx) {
     scroll.appendChild(el);
   });
 
-  // IntersectionObserver — autoplay + counter + dots
+  // IntersectionObserver — autoplay + counter + dots + preloading
   const allDots = progressEl.querySelectorAll(".progress-dot");
+  const allItems = Array.from(scroll.querySelectorAll(".reel-item"));
+
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       const el = entry.target;
       if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
         el._play && el._play();
         currentReelIdx = parseInt(el.dataset.idx);
+
+        // ── Preload N+1 and N+2 while user watches current reel ──
+        // On local: <video preload="metadata"> starts buffering headers + first frames
+        // On remote: no-op (can't preload cross-origin iframes meaningfully)
+        [1, 2].forEach(offset => {
+          const next = allItems[currentReelIdx + offset];
+          if (next && next._preload) next._preload();
+        });
+
+        // Update counter and progress dots
         const vidsSoFar = REEL_FEED.slice(0, currentReelIdx + 1).filter(f => f.type === "video").length;
         counter.textContent = `${vidsSoFar} / ${totalVids}`;
         const maxDots = allDots.length, step = REEL_FEED.length / maxDots;
@@ -1412,7 +1459,7 @@ function renderReels(startIdx) {
     });
   }, { threshold: 0.5, root: scroll });
 
-  scroll.querySelectorAll(".reel-item").forEach(el => observer.observe(el));
+  allItems.forEach(el => observer.observe(el));
 
   if (startIdx > 0) {
     requestAnimationFrame(() => {
