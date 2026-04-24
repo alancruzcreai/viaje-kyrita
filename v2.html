@@ -80,6 +80,10 @@ html,body {
   transform: translateX(-30%);
   opacity: 0;
 }
+.panel.exit-left {
+  transform: translateX(-30%) !important;
+  opacity: 0 !important;
+}
 
 /* ─── BOTTOM NAV ─── */
 .bottom-nav {
@@ -344,11 +348,18 @@ html,body {
 }
 .grid-section-label {
   grid-column: 1/-1;
-  padding: 18px 16px 8px;
-  font-size: 13px; font-weight: 600;
-  color: var(--gray-5);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding: 24px 16px 6px;
+  font-size: 30px; font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  text-transform: none;
+}
+.grid-section-label small {
+  display: block;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gray-4); margin-top: 2px;
 }
 
 /* ─── TAB 3: PROFILE / PASSPORT ─── */
@@ -517,6 +528,128 @@ html,body {
 }
 @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
 
+/* ─── VIDEO PLAYER CONTROLS ─── */
+.reel-video-wrap {
+  position: absolute; inset: 0; z-index: 1;
+}
+.reel-video-wrap video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.reel-video-progress {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 7; height: 2px;
+  background: rgba(255,255,255,0.18);
+}
+.reel-video-progress-bar {
+  height: 100%; background: rgba(255,255,255,0.85); width: 0;
+  transition: width 0.25s linear;
+}
+.pp-overlay {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.pp-icon {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: rgba(0,0,0,0.38); backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1.5px solid rgba(255,255,255,0.28);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.75);
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease-bounce);
+}
+.pp-icon svg { width: 28px; height: 28px; }
+.pp-overlay.show .pp-icon { opacity: 1; transform: scale(1); }
+.seek-flash {
+  position: absolute; top: 50%; z-index: 6; transform: translateY(-50%);
+  padding: 10px 20px; border-radius: var(--r-pill);
+  background: rgba(0,0,0,0.48); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white; font-size: 14px; font-weight: 700;
+  letter-spacing: 0.01em;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.seek-flash.left { left: 20px; }
+.seek-flash.right { right: 20px; }
+.seek-flash.show { opacity: 1; }
+.reel-mute-btn {
+  position: absolute; top: calc(var(--safe-t) + 56px); right: 16px; z-index: 8;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.reel-mute-btn:active { background: rgba(255,255,255,0.2); }
+
+/* ─── PHOTO CAROUSEL REEL ─── */
+.carousel-reel { user-select: none; }
+.carousel-horizontal {
+  position: absolute; inset: 0;
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.carousel-horizontal::-webkit-scrollbar { display: none; }
+.carousel-slide {
+  flex: 0 0 100%; height: 100%;
+  scroll-snap-align: start;
+  position: relative; background: #111;
+}
+.carousel-slide img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.carousel-dots {
+  position: absolute; bottom: 100px; left: 0; right: 0;
+  display: flex; justify-content: center; gap: 6px; z-index: 5;
+  pointer-events: none;
+}
+.carousel-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  transition: background 0.2s, transform 0.2s var(--ease-bounce);
+}
+.carousel-dot.active { background: white; transform: scale(1.3); }
+.carousel-badge {
+  position: absolute; top: calc(var(--safe-t) + 14px); left: 20px; z-index: 8;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.25); border-radius: var(--r-pill);
+  padding: 5px 12px; font-size: 11px; font-weight: 700;
+  color: white; letter-spacing: 0.06em; text-transform: uppercase;
+}
+
+/* ─── GRID PROFILE HEADER ─── */
+.grid-profile-hdr {
+  display: flex; align-items: center; gap: 20px;
+  padding: calc(var(--safe-t) + 20px) 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.grid-profile-hdr-avatar {
+  width: 76px; height: 76px; border-radius: 50%;
+  object-fit: cover; border: 2px solid rgba(255,255,255,0.12); flex-shrink: 0;
+}
+.grid-profile-hdr-info { flex: 1; min-width: 0; }
+.grid-profile-hdr-name {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.04em; line-height: 1;
+  margin-bottom: 8px;
+}
+.grid-profile-hdr-stats {
+  display: flex; gap: 18px; margin-bottom: 8px;
+}
+.grid-hdr-stat { text-align: center; }
+.grid-hdr-stat-num { font-size: 16px; font-weight: 700; letter-spacing: -0.03em; display: block; line-height: 1; }
+.grid-hdr-stat-lbl { font-size: 10px; color: var(--gray-5); letter-spacing: 0.01em; }
+.grid-profile-hdr-bio {
+  font-size: 12px; color: var(--gray-5); line-height: 1.5;
+  font-style: italic; letter-spacing: 0.01em;
+}
+
 /* ─── SCROLL HINT ─── */
 .scroll-hint {
   position: absolute;
@@ -580,6 +713,15 @@ html,body {
 
     <!-- TAB 2: GRID -->
     <div class="panel" id="panelGrid">
+      <div class="grid-profile-hdr">
+        <img class="grid-profile-hdr-avatar" src="kyra.jpg" alt="Kyrita"
+          onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 76 76%22%3E%3Crect width=%2276%22 height=%2276%22 fill=%22%23667eea%22 rx=%2238%22/%3E%3Ctext x=%2238%22 y=%2248%22 font-size=%2236%22 text-anchor=%22middle%22 font-family=%22Arial%22 fill=%22white%22%3EK%3C/text%3E%3C/svg%3E'">
+        <div class="grid-profile-hdr-info">
+          <div class="grid-profile-hdr-name">Kyrita ✈</div>
+          <div class="grid-profile-hdr-stats" id="gridHdrStats"></div>
+          <div class="grid-profile-hdr-bio">"Europa me cambió para siempre. Cada ciudad, un capítulo. Cada video, una memoria que no se borra."</div>
+        </div>
+      </div>
       <div class="grid-topbar">
         <div class="grid-topbar-title">Eurotrip 2025</div>
         <div class="grid-topbar-sub" id="gridSub"></div>
@@ -895,34 +1037,42 @@ function switchTab(tab) {
   const prevIdx = tabOrder.indexOf(currentTab);
   const nextIdx = tabOrder.indexOf(tab);
   const goRight = nextIdx > prevIdx;
-
-  // Animate out old panel
   const oldPanel = document.getElementById(panels[currentTab]);
-  oldPanel.classList.remove("active");
-  oldPanel.classList.add(goRight ? "slide-left" : "");
-  oldPanel.style.transform = goRight ? "translateX(-30%)" : "translateX(100%)";
-  oldPanel.style.opacity = "0";
-  setTimeout(() => {
-    oldPanel.style.transform = "";
-    oldPanel.style.opacity = "";
-    oldPanel.classList.remove("slide-left");
-  }, 380);
-
-  // Animate in new panel
   const newPanel = document.getElementById(panels[tab]);
-  newPanel.style.transform = goRight ? "translateX(100%)" : "translateX(-30%)";
-  newPanel.style.opacity = "0";
-  newPanel.style.transition = "none";
-  newPanel.classList.add("active");
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      newPanel.style.transition = "";
-      newPanel.style.transform = "translateX(0)";
-      newPanel.style.opacity = "1";
-    });
-  });
 
-  // Update nav
+  // ── 1. Wipe any stale inline styles left by previous incoming animations
+  //        (inline opacity/transform override CSS class rules — this is the core bug)
+  oldPanel.style.opacity   = "";
+  oldPanel.style.transform = "";
+  oldPanel.style.transition = "";
+
+  // ── 2. Animate OLD panel OUT via CSS classes (no inline style needed)
+  oldPanel.classList.remove("active");
+  if (goRight) {
+    // Exit left: needs explicit class because CSS base exits right (translateX(100%))
+    oldPanel.classList.add("exit-left");
+    setTimeout(() => oldPanel.classList.remove("exit-left"), 420);
+  }
+  // When !goRight: CSS base (.panel { transform: translateX(100%); opacity: 0 })
+  // takes over via transition — panel naturally slides out to the right ✓
+
+  // ── 3. Position NEW panel off-screen with no transition (instant snap)
+  //        Also strip any leftover exit class — its !important rules block the active animation
+  newPanel.classList.remove("exit-left", "slide-left");
+  newPanel.style.opacity   = "";          // clear any stale opacity too
+  newPanel.style.transition = "none";
+  newPanel.style.transform  = goRight ? "translateX(100%)" : "translateX(-30%)";
+  void newPanel.offsetHeight;            // force reflow — commits the off-screen position
+
+  // ── 4. Animate NEW panel IN
+  //        void offsetHeight already forced the browser to commit the "no-transition, off-screen"
+  //        state. Now restore the CSS transition and snap to final position — the browser will
+  //        detect the delta and animate. No rAF needed (and rAF won't fire in hidden tabs).
+  newPanel.style.transition = "";      // remove inline override → CSS transition: 0.35s resumes
+  newPanel.style.transform  = "";      // remove inline override → CSS .panel.active: translateX(0)
+  newPanel.classList.add("active");    // opacity 0→1, transform slides in via CSS transition
+
+  // ── 5. Update nav bar indicators
   document.getElementById(navBtns[currentTab]).classList.remove("active");
   document.getElementById(navBtns[tab]).classList.add("active");
   currentTab = tab;
@@ -943,159 +1093,331 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// REEL FEED — videos interspersed with photo carousels
+// ═══════════════════════════════════════════════════════════════
+function buildReelFeed() {
+  const feed = [];
+  let prevKey = null, pendingCarousel = null, pendingMonth = null;
+  CHRONO_ORDER.forEach(({city, month}) => {
+    const cityData = DATA[month] && DATA[month][city];
+    if (!cityData) return;
+    const key = `${city}-${month}`;
+    if (key !== prevKey) {
+      // Insert previous city's carousel before starting new city
+      if (pendingCarousel) { feed.push(pendingCarousel); pendingCarousel = null; }
+      const photos = cityData.files.filter(f => f.t === "I").slice(0, 9);
+      if (photos.length >= 2) {
+        pendingCarousel = { type:"carousel", city, month, date:cityData.date,
+          country:(CITY_INFO[city] && CITY_INFO[city].country) || "", photos };
+      }
+      prevKey = key; pendingMonth = month;
+    }
+    cityData.files.filter(f => f.t === "V").forEach(file => {
+      feed.push({ type:"video", id:file.id, city, month, date:cityData.date,
+        country:(CITY_INFO[city] && CITY_INFO[city].country) || "" });
+    });
+  });
+  if (pendingCarousel) feed.push(pendingCarousel);
+  return feed;
+}
+const REEL_FEED = buildReelFeed();
+
+// ─── Video item builder ───
+function buildVideoItem(v, feedIdx) {
+  const item = document.createElement("div");
+  item.className = "reel-item"; item.dataset.idx = feedIdx;
+  const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
+
+  // Thumbnail placeholder
+  const thumbDiv = document.createElement("div");
+  thumbDiv.className = "reel-thumb shimmer";
+  const tImg = new Image();
+  tImg.onload = () => { thumbDiv.style.backgroundImage = `url(${tImg.src})`; thumbDiv.classList.remove("shimmer"); };
+  tImg.onerror = () => thumbDiv.classList.remove("shimmer");
+  tImg.src = thumb(v.id, 800);
+  item.appendChild(thumbDiv);
+
+  // State
+  let videoEl = null, muted = true, isPaused = false;
+
+  // Progress bar
+  const progressWrap = document.createElement("div");
+  progressWrap.className = "reel-video-progress";
+  const progressBar = document.createElement("div");
+  progressBar.className = "reel-video-progress-bar";
+  progressWrap.appendChild(progressBar);
+  item.appendChild(progressWrap);
+
+  function ensureVideo() {
+    if (videoEl) return videoEl;
+    videoEl = document.createElement("video");
+    // Drive download URL — works for publicly shared files
+    videoEl.src = `https://drive.google.com/uc?id=${v.id}&export=download&confirm=t`;
+    videoEl.playsInline = true;
+    videoEl.setAttribute("webkit-playsinline","");
+    videoEl.muted = true; videoEl.preload = "none"; videoEl.loop = true;
+    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;";
+    videoEl.addEventListener("loadeddata", () => { thumbDiv.style.opacity = "0"; }, {once:true});
+    videoEl.addEventListener("timeupdate", () => {
+      if (videoEl.duration) progressBar.style.width = `${(videoEl.currentTime/videoEl.duration)*100}%`;
+    });
+    // Fallback: if Drive download fails, use Drive preview iframe
+    videoEl.addEventListener("error", () => {
+      videoEl.remove(); videoEl = null;
+      const iWrap = document.createElement("div");
+      iWrap.style.cssText = "position:absolute;inset:0;z-index:1;";
+      const ifr = document.createElement("iframe");
+      ifr.src = `https://drive.google.com/file/d/${v.id}/preview?autoplay=1`;
+      ifr.allow = "autoplay; fullscreen"; ifr.allowFullscreen = true;
+      ifr.style.cssText = "width:100%;height:100%;border:none;";
+      iWrap.appendChild(ifr);
+      item.insertBefore(iWrap, thumbDiv.nextSibling);
+      thumbDiv.style.opacity = "0";
+    }, {once:true});
+    item.insertBefore(videoEl, thumbDiv.nextSibling);
+    return videoEl;
+  }
+
+  function playV() {
+    const ve = ensureVideo(); ve.preload = "auto";
+    ve.play().catch(() => {}); isPaused = false;
+  }
+  function pauseV() { if (videoEl) { videoEl.pause(); isPaused = true; } }
+  function unloadV() {
+    if (videoEl) { videoEl.pause(); videoEl.src = ""; videoEl.remove(); videoEl = null; }
+    isPaused = false; thumbDiv.style.opacity = "1"; progressBar.style.width = "0";
+  }
+  item._play = playV; item._pause = pauseV; item._unload = unloadV;
+
+  // Play/pause overlay
+  const ppOverlay = document.createElement("div");
+  ppOverlay.className = "pp-overlay";
+  const ppIcon = document.createElement("div");
+  ppIcon.className = "pp-icon";
+  ppIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`;
+  ppOverlay.appendChild(ppIcon);
+  item.appendChild(ppOverlay);
+
+  // Seek overlays
+  const seekL = document.createElement("div");
+  seekL.className = "seek-flash left";
+  seekL.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="11,5 2,12 11,19"/><polygon points="21,5 12,12 21,19"/></svg> 10s`;
+  const seekR = document.createElement("div");
+  seekR.className = "seek-flash right";
+  seekR.innerHTML = `10s <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="3,5 12,12 3,19"/><polygon points="13,5 22,12 13,19"/></svg>`;
+  item.appendChild(seekL); item.appendChild(seekR);
+
+  // Mute toggle
+  const muteBtn = document.createElement("button");
+  muteBtn.className = "reel-mute-btn";
+  const svgMuteOn = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+  const svgMuteOff = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+  muteBtn.innerHTML = svgMuteOff; // starts muted
+  muteBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    if (!videoEl) return;
+    muted = !muted; videoEl.muted = muted;
+    muteBtn.innerHTML = muted ? svgMuteOff : svgMuteOn;
+  });
+  item.appendChild(muteBtn);
+
+  // TikTok touch controls
+  let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
+
+  function flashSeek(el) { el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 700); }
+  function showPP(playing) {
+    ppIcon.innerHTML = playing
+      ? `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`;
+    ppOverlay.classList.add("show");
+    setTimeout(() => ppOverlay.classList.remove("show"), 750);
+  }
+
+  item.addEventListener("touchstart", e => {
+    touchX0 = e.touches[0].clientX;
+    holdTimer = setTimeout(() => {
+      holdSeeking = true;
+      const goLeft = touchX0 < item.offsetWidth / 2;
+      (function loop() {
+        if (!holdSeeking || !videoEl) return;
+        videoEl.currentTime = goLeft
+          ? Math.max(0, videoEl.currentTime - 2)
+          : Math.min(videoEl.duration || 9999, videoEl.currentTime + 2);
+        goLeft ? flashSeek(seekL) : flashSeek(seekR);
+        setTimeout(loop, 200);
+      })();
+    }, 480);
+  }, {passive:true});
+
+  item.addEventListener("touchend", e => {
+    clearTimeout(holdTimer);
+    const wasHold = holdSeeking; holdSeeking = false;
+    if (wasHold) return;
+    const now = Date.now(), x = e.changedTouches[0].clientX;
+    const diff = now - lastTap;
+    if (diff < 300 && diff > 30 && videoEl) {
+      // Double-tap seek
+      if (x < item.offsetWidth / 2) { videoEl.currentTime = Math.max(0, videoEl.currentTime - 10); flashSeek(seekL); }
+      else { videoEl.currentTime = Math.min(videoEl.duration || 9999, videoEl.currentTime + 10); flashSeek(seekR); }
+      lastTap = 0;
+    } else {
+      lastTap = now;
+      setTimeout(() => {
+        if (Date.now() - now < 280) return;
+        if (isPaused) { playV(); showPP(false); } else { pauseV(); showPP(true); }
+      }, 300);
+    }
+  }, {passive:true});
+
+  // City + date info
+  const info = document.createElement("div");
+  info.className = "reel-info";
+  info.innerHTML = `<div class="reel-city"><span class="reel-flag">${flag}</span>${v.city}</div>
+    <div class="reel-meta">${v.date} · ${v.month} 2025</div>`;
+  item.appendChild(info);
+
+  // Right actions
+  const actions = document.createElement("div");
+  actions.className = "reel-actions";
+  actions.innerHTML = `
+    <div class="reel-action-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg><span class="reel-action-label">Compartir</span>
+    </div>
+    <div class="reel-action-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+      </svg><span class="reel-action-label">${v.city}</span>
+    </div>`;
+  item.appendChild(actions);
+
+  if (feedIdx === 0) {
+    const hint = document.createElement("div");
+    hint.className = "scroll-hint";
+    hint.innerHTML = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    item.appendChild(hint);
+  }
+  return item;
+}
+
+// ─── Photo carousel item builder ───
+function buildCarouselItem(data, feedIdx) {
+  const item = document.createElement("div");
+  item.className = "reel-item carousel-reel"; item.dataset.idx = feedIdx;
+  item._play = () => {}; item._pause = () => {};
+  const cm = COUNTRY_META[data.country] || {}, flag = cm.flag || "📷";
+
+  // Horizontal photo scroller
+  const hScroll = document.createElement("div");
+  hScroll.className = "carousel-horizontal";
+  data.photos.forEach(file => {
+    const slide = document.createElement("div");
+    slide.className = "carousel-slide";
+    const img = document.createElement("img");
+    img.loading = "lazy"; img.alt = data.city;
+    img.src = thumb(file.id, 1200);
+    slide.appendChild(img); hScroll.appendChild(slide);
+  });
+  item.appendChild(hScroll);
+
+  // Gradient overlay (reuse reel-thumb styles)
+  const gradDiv = document.createElement("div");
+  gradDiv.className = "reel-thumb";
+  gradDiv.style.cssText = "background:none;pointer-events:none;";
+  item.appendChild(gradDiv);
+
+  // Dot indicators
+  const dots = document.createElement("div");
+  dots.className = "carousel-dots";
+  data.photos.forEach((_, pi) => {
+    const d = document.createElement("div");
+    d.className = "carousel-dot" + (pi === 0 ? " active" : "");
+    dots.appendChild(d);
+  });
+  item.appendChild(dots);
+
+  hScroll.addEventListener("scroll", () => {
+    const pi = Math.round(hScroll.scrollLeft / (hScroll.offsetWidth || 1));
+    dots.querySelectorAll(".carousel-dot").forEach((d, i) => {
+      d.className = "carousel-dot" + (i === pi ? " active" : "");
+    });
+  }, {passive:true});
+
+  // Badge + city info
+  const badge = document.createElement("div");
+  badge.className = "carousel-badge";
+  badge.textContent = `📷 ${data.photos.length} fotos`;
+  item.appendChild(badge);
+
+  const info = document.createElement("div");
+  info.className = "reel-info";
+  info.innerHTML = `<div class="reel-city"><span class="reel-flag">${flag}</span>${data.city}</div>
+    <div class="reel-meta">${data.date} · ${data.month} 2025</div>`;
+  item.appendChild(info);
+
+  return item;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // REELS RENDERER
 // ═══════════════════════════════════════════════════════════════
 function renderReels(startIdx) {
   const scroll = document.getElementById("reelsScroll");
   scroll.innerHTML = "";
   const counter = document.getElementById("reelsCounter");
-  counter.textContent = `1 / ${ALL_VIDEOS.length}`;
+  const totalVids = REEL_FEED.filter(f => f.type === "video").length;
+  counter.textContent = `1 / ${totalVids}`;
 
-  // Build progress dots (max 20 for display)
+  // Progress dots
   const topbar = document.getElementById("reelsTopbar");
   let progressEl = document.getElementById("reelProgress");
   if (!progressEl) {
     progressEl = document.createElement("div");
-    progressEl.id = "reelProgress";
-    progressEl.className = "reel-progress";
-    const maxDots = Math.min(ALL_VIDEOS.length, 20);
+    progressEl.id = "reelProgress"; progressEl.className = "reel-progress";
+    const maxDots = Math.min(REEL_FEED.length, 24);
     for (let i = 0; i < maxDots; i++) {
       const d = document.createElement("div");
       d.className = "progress-dot" + (i === 0 ? " active" : "");
-      d.id = `pd-${i}`;
       progressEl.appendChild(d);
     }
     topbar.parentElement.insertBefore(progressEl, topbar);
   }
 
-  ALL_VIDEOS.forEach((v, idx) => {
-    const item = document.createElement("div");
-    item.className = "reel-item";
-    item.dataset.idx = idx;
-
-    const cm = COUNTRY_META[v.country] || {};
-    const flag = cm.flag || "🌍";
-
-    // Thumbnail background
-    const thumbDiv = document.createElement("div");
-    thumbDiv.className = "reel-thumb shimmer";
-    const img = new Image();
-    img.onload = () => {
-      thumbDiv.style.backgroundImage = `url(${img.src})`;
-      thumbDiv.classList.remove("shimmer");
-    };
-    img.onerror = () => thumbDiv.classList.remove("shimmer");
-    img.src = thumb(v.id, 800);
-    item.appendChild(thumbDiv);
-
-    // Play button
-    const playBtn = document.createElement("button");
-    playBtn.className = "reel-play-btn";
-    playBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="white"><polygon points="6,4 20,12 6,20"/></svg>`;
-    item.appendChild(playBtn);
-
-    // Iframe wrapper (lazy — only loads on tap)
-    const iframeWrap = document.createElement("div");
-    iframeWrap.className = "reel-iframe-wrap";
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "reel-close-video";
-    closeBtn.textContent = "×";
-    iframeWrap.appendChild(closeBtn);
-    item.appendChild(iframeWrap);
-
-    // Play tap: inject iframe
-    playBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (iframeWrap.classList.contains("visible")) return;
-      const iframe = document.createElement("iframe");
-      iframe.src = videoPreview(v.id);
-      iframe.allow = "autoplay; fullscreen";
-      iframe.setAttribute("allowfullscreen","");
-      iframeWrap.appendChild(iframe);
-      iframeWrap.classList.add("visible");
-      playBtn.style.display = "none";
-    });
-
-    // Close video (back to thumbnail)
-    closeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      iframeWrap.innerHTML = "";
-      iframeWrap.appendChild(closeBtn);
-      iframeWrap.classList.remove("visible");
-      playBtn.style.display = "";
-    });
-
-    // Info overlay
-    const info = document.createElement("div");
-    info.className = "reel-info";
-    info.innerHTML = `
-      <div class="reel-city"><span class="reel-flag">${flag}</span>${v.city}</div>
-      <div class="reel-meta">${v.date} · ${v.month} 2025</div>
-    `;
-    item.appendChild(info);
-
-    // Right side actions
-    const actions = document.createElement("div");
-    actions.className = "reel-actions";
-    actions.innerHTML = `
-      <div class="reel-action-btn" title="Compartir">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-        </svg>
-        <span class="reel-action-label">Compartir</span>
-      </div>
-      <div class="reel-action-btn" title="Ciudad">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-        <span class="reel-action-label">${v.city}</span>
-      </div>
-    `;
-    item.appendChild(actions);
-
-    // Scroll-down hint on very first reel
-    if (idx === 0) {
-      const hint = document.createElement("div");
-      hint.className = "scroll-hint";
-      hint.innerHTML = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-      item.appendChild(hint);
-    }
-
-    scroll.appendChild(item);
+  // Build all items
+  REEL_FEED.forEach((item, idx) => {
+    const el = item.type === "carousel" ? buildCarouselItem(item, idx) : buildVideoItem(item, idx);
+    scroll.appendChild(el);
   });
 
-  // IntersectionObserver — track current reel + update counter/progress
-  const observer = new IntersectionObserver((entries) => {
+  // IntersectionObserver — autoplay + counter + dots
+  const allDots = progressEl.querySelectorAll(".progress-dot");
+  const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
+      const el = entry.target;
       if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-        const idx = parseInt(entry.target.dataset.idx);
-        currentReelIdx = idx;
-        counter.textContent = `${idx + 1} / ${ALL_VIDEOS.length}`;
-        // Update progress dots
-        const maxDots = Math.min(ALL_VIDEOS.length, 20);
-        const step = ALL_VIDEOS.length / maxDots;
-        for (let i = 0; i < maxDots; i++) {
-          const dot = document.getElementById(`pd-${i}`);
-          if (!dot) continue;
-          const threshold = i * step;
-          dot.className = "progress-dot" + (idx >= threshold + step ? " seen" : idx >= threshold ? " active" : "");
-        }
+        el._play && el._play();
+        currentReelIdx = parseInt(el.dataset.idx);
+        const vidsSoFar = REEL_FEED.slice(0, currentReelIdx + 1).filter(f => f.type === "video").length;
+        counter.textContent = `${vidsSoFar} / ${totalVids}`;
+        const maxDots = allDots.length, step = REEL_FEED.length / maxDots;
+        allDots.forEach((dot, i) => {
+          const thr = i * step;
+          dot.className = "progress-dot" + (currentReelIdx >= thr + step ? " seen" : currentReelIdx >= thr ? " active" : "");
+        });
+      } else {
+        el._pause && el._pause();
       }
     });
   }, { threshold: 0.5, root: scroll });
 
   scroll.querySelectorAll(".reel-item").forEach(el => observer.observe(el));
 
-  // Scroll to startIdx if needed
   if (startIdx > 0) {
     requestAnimationFrame(() => {
       const items = scroll.querySelectorAll(".reel-item");
-      if (items[startIdx]) {
-        items[startIdx].scrollIntoView({ behavior: "instant", block: "start" });
-      }
+      if (items[startIdx]) items[startIdx].scrollIntoView({ behavior:"instant", block:"start" });
     });
   }
 }
@@ -1109,14 +1431,23 @@ function renderGrid() {
   grid.innerHTML = "";
   sub.textContent = `${ALL_VIDEOS.length} videos · ${CHRONO_ORDER.length} ciudades`;
 
+  // Populate profile header stats
+  const statsEl = document.getElementById("gridHdrStats");
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <div class="grid-hdr-stat"><span class="grid-hdr-stat-num">8</span><span class="grid-hdr-stat-lbl">Países</span></div>
+      <div class="grid-hdr-stat"><span class="grid-hdr-stat-num">15</span><span class="grid-hdr-stat-lbl">Ciudades</span></div>
+      <div class="grid-hdr-stat"><span class="grid-hdr-stat-num">${ALL_VIDEOS.length}</span><span class="grid-hdr-stat-lbl">Videos</span></div>`;
+  }
+
   let lastCity = null;
   ALL_VIDEOS.forEach((v, idx) => {
-    // Section label per city
+    // Section label per city — bold Helvetica Neue style
     if (v.city !== lastCity) {
       const label = document.createElement("div");
       label.className = "grid-section-label";
       const cm = COUNTRY_META[v.country] || {};
-      label.textContent = `${cm.flag || ""} ${v.city}  ·  ${v.date}`.trim();
+      label.innerHTML = `${cm.flag || ""} ${v.city}<small>${v.date.toUpperCase()} · ${v.month.toUpperCase()}</small>`;
       grid.appendChild(label);
       lastCity = v.city;
     }
