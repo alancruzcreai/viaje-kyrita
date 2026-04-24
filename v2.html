@@ -32,6 +32,29 @@
   --r-sm: 8px; --r-md: 14px; --r-lg: 20px; --r-pill: 9999px;
   --ease: cubic-bezier(0.4,0,0.2,1);
   --ease-bounce: cubic-bezier(0.34,1.56,0.64,1);
+  /* ── Light / Dark mode ── */
+  --panel-bg: #0A0A0A;
+  --panel-text: #FFFFFF;
+  --panel-text-2: #8E8E93;
+  --panel-border: rgba(255,255,255,0.06);
+  --panel-surface: #1C1C1E;
+  --panel-surface-2: #2C2C2E;
+  --nav-bg: rgba(28,28,30,0.92);
+  --nav-border: rgba(255,255,255,0.08);
+}
+[data-theme="light"] {
+  --panel-bg: #FAFAFA;
+  --panel-text: #000000;
+  --panel-text-2: #555555;
+  --panel-border: rgba(0,0,0,0.08);
+  --panel-surface: #FFFFFF;
+  --panel-surface-2: #F0F0F0;
+  --nav-bg: rgba(255,255,255,0.94);
+  --nav-border: rgba(0,0,0,0.1);
+  --gray-4: #999999;
+  --gray-5: #888888;
+  --glass: rgba(255,255,255,0.92);
+  --glass-border: rgba(0,0,0,0.08);
 }
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
 html,body {
@@ -91,10 +114,11 @@ html,body {
   z-index: 100;
   height: var(--nav-total);
   padding-bottom: var(--safe-b);
-  background: var(--glass);
+  background: var(--nav-bg);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-top: 1px solid var(--glass-border);
+  border-top: 1px solid var(--nav-border);
+  transition: background 0.3s ease;
   display: flex;
   align-items: flex-start;
   justify-content: space-around;
@@ -233,41 +257,102 @@ html,body {
   font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
-.reel-info {
+/* ── Instagram Reels: right sidebar ── */
+.reel-sidebar {
   position: absolute;
-  bottom: 28px; left: 0; right: 64px;
-  padding: 0 20px;
+  right: 12px; bottom: 90px;
   z-index: 4;
-  pointer-events: none;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 22px;
 }
-.reel-city {
-  font-size: 22px; font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-  margin-bottom: 4px;
+.reel-action {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 5px;
+  cursor: pointer; color: white;
+  -webkit-tap-highlight-color: transparent;
 }
-.reel-meta {
-  font-size: 13px; font-weight: 400;
-  color: rgba(255,255,255,0.75);
+.reel-action svg {
+  width: 30px; height: 30px;
+  filter: drop-shadow(0 1px 6px rgba(0,0,0,0.55));
+  transition: transform 0.15s var(--ease-bounce);
+}
+.reel-action:active svg { transform: scale(0.82); }
+.reel-action-num {
+  font-size: 12px; font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
   letter-spacing: 0.01em;
 }
-.reel-flag { font-size: 18px; margin-right: 6px; }
-.reel-actions {
+.reel-sidebar-mute {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 2px;
+  transition: background 0.2s;
+}
+.reel-sidebar-mute:active { background: rgba(255,255,255,0.3); }
+.reel-sidebar-mute svg { width: 20px; height: 20px; }
+
+/* ── Instagram Reels: bottom footer ── */
+.reel-footer {
   position: absolute;
-  right: 14px; bottom: 28px;
-  display: flex; flex-direction: column;
-  align-items: center; gap: 20px;
+  left: 0; right: 72px;
+  bottom: 28px;
+  padding: 0 16px;
   z-index: 4;
 }
-.reel-action-btn {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 4px;
-  cursor: pointer;
-  color: white;
+.reel-user-row {
+  display: flex; align-items: center;
+  gap: 10px; margin-bottom: 10px;
 }
-.reel-action-btn svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5)); }
-.reel-action-label { font-size: 11px; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.reel-user-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.9);
+  flex-shrink: 0;
+}
+.reel-username {
+  font-size: 14px; font-weight: 700;
+  color: white; letter-spacing: -0.02em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  flex: 1;
+}
+.reel-follow-btn {
+  padding: 5px 14px;
+  border-radius: 7px;
+  border: 1.5px solid rgba(255,255,255,0.85);
+  background: transparent;
+  color: white; font-size: 13px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0;
+  letter-spacing: -0.01em;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.reel-follow-btn:active { background: rgba(255,255,255,0.2); }
+.reel-caption {
+  font-size: 14px; font-weight: 400;
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  line-height: 1.4; letter-spacing: -0.01em;
+}
+.reel-caption strong { font-weight: 700; }
+
+/* ── iframe fallback clip (hides Drive chrome) ── */
+.reel-iframe-clip {
+  position: absolute; inset: 0; overflow: hidden; z-index: 1;
+  background: #000;
+}
+.reel-iframe-clip iframe {
+  position: absolute; left: 0; right: 0;
+  width: 100%;
+  /* Extend frame to hide Drive header (~50px) and controls (~60px) */
+  height: calc(100% + 120px);
+  top: -50px;
+  border: none;
+  pointer-events: none; /* allow our overlay to handle gestures */
+}
 .reel-progress {
   position: absolute; top: 0; left: 0; right: 0;
   z-index: 5;
@@ -287,24 +372,28 @@ html,body {
 
 /* ─── TAB 2: GRID ─── */
 #panelGrid {
-  background: var(--black);
+  background: var(--panel-bg);
+  color: var(--panel-text);
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 .grid-topbar {
   position: sticky; top: 0; z-index: 10;
   padding: calc(var(--safe-t) + 14px) 16px 12px;
-  background: var(--black);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  transition: background 0.3s ease;
 }
 .grid-topbar-title {
   font-size: 28px; font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.1;
+  color: var(--panel-text);
 }
 .grid-topbar-sub {
-  font-size: 13px; color: var(--gray-5);
+  font-size: 13px; color: var(--panel-text-2);
   margin-top: 2px; letter-spacing: 0.01em;
 }
 .videos-grid {
@@ -350,7 +439,7 @@ html,body {
   grid-column: 1/-1;
   padding: 24px 16px 6px;
   font-size: 30px; font-weight: 800;
-  color: var(--white);
+  color: var(--panel-text);
   letter-spacing: -0.05em;
   line-height: 1;
   text-transform: none;
@@ -359,12 +448,14 @@ html,body {
   display: block;
   font-size: 11px; font-weight: 500;
   letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--gray-4); margin-top: 2px;
+  color: var(--panel-text-2); margin-top: 2px;
 }
 
 /* ─── TAB 3: PROFILE / PASSPORT ─── */
 #panelProfile {
-  background: var(--black);
+  background: var(--panel-bg);
+  color: var(--panel-text);
+  transition: background 0.3s ease, color 0.3s ease;
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -573,17 +664,25 @@ html,body {
 .seek-flash.left { left: 20px; }
 .seek-flash.right { right: 20px; }
 .seek-flash.show { opacity: 1; }
-.reel-mute-btn {
-  position: absolute; top: calc(var(--safe-t) + 56px); right: 16px; z-index: 8;
+/* ── Light mode toggle (in reels topbar) ── */
+.theme-toggle-btn {
   width: 36px; height: 36px; border-radius: 50%;
-  background: rgba(0,0,0,0.45); backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.2);
   color: white; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.2s;
+  pointer-events: all;
 }
-.reel-mute-btn:active { background: rgba(255,255,255,0.2); }
+.theme-toggle-btn:active { background: rgba(255,255,255,0.25); }
+.theme-toggle-btn svg { width: 18px; height: 18px; }
+/* Theme toggle lives over dark video — keep it white in both themes */
+[data-theme="light"] .theme-toggle-btn {
+  background: rgba(255,255,255,0.18);
+  border-color: rgba(255,255,255,0.3);
+  color: white;
+}
 
 /* ─── PHOTO CAROUSEL REEL ─── */
 .carousel-reel { user-select: none; }
@@ -707,6 +806,23 @@ html,body {
       <div class="reels-topbar" id="reelsTopbar">
         <span class="reels-topbar-title">Videos</span>
         <span class="reels-counter-badge" id="reelsCounter"></span>
+        <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema">
+          <!-- Moon (dark mode icon shown in dark, sun shown in light) -->
+          <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
       </div>
       <div class="reels-scroll" id="reelsScroll"></div>
     </div>
@@ -1093,6 +1209,39 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// LIGHT / DARK MODE TOGGLE
+// ═══════════════════════════════════════════════════════════════
+(function initTheme() {
+  const html = document.documentElement;
+  const btn  = document.getElementById("themeToggleBtn");
+  const moon = document.getElementById("themeIconMoon");
+  const sun  = document.getElementById("themeIconSun");
+
+  function applyTheme(light) {
+    if (light) {
+      html.dataset.theme = "light";
+      moon.style.display = "none";
+      sun.style.display  = "";
+    } else {
+      delete html.dataset.theme;
+      moon.style.display = "";
+      sun.style.display  = "none";
+    }
+  }
+
+  // Restore saved preference
+  const saved = localStorage.getItem("kyrita-theme");
+  applyTheme(saved === "light");
+
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const isLight = html.dataset.theme === "light";
+    applyTheme(!isLight);
+    localStorage.setItem("kyrita-theme", !isLight ? "light" : "dark");
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
 // REEL FEED — videos interspersed with photo carousels
 // ═══════════════════════════════════════════════════════════════
 function buildReelFeed() {
@@ -1122,29 +1271,98 @@ function buildReelFeed() {
 }
 const REEL_FEED = buildReelFeed();
 
-// ─── Environment detection ───────────────────────────────────────
-// On localhost/LAN the Python proxy serves /video/<id> as a real
-// streamable video — full <video> element with all TikTok controls.
-// On GitHub Pages (no proxy) we fall back to a Drive iframe.
-const IS_LOCAL = (function() {
-  const h = location.hostname;
-  return h === "localhost" || h === "127.0.0.1" || /^192\.168\./.test(h) || /^10\./.test(h);
-})();
-
-// ─── Video item builder ───
+// ─── Video item builder — Instagram Reels style ──────────────────
+// Strategy: always try <video> first with drive.usercontent.google.com
+// (bypasses HTML antivirus-scan page, returns actual video bytes on iOS).
+// Retry with classic URL on first error. Iframe fallback on second error.
+// <video muted loop playsinline> autoplays via IntersectionObserver.
 function buildVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
-  // ── Thumbnail (shown instantly, fades when video loads) ──────
+  // ── 1. Thumbnail (instant visual, fades out when video loads) ──
   const thumbDiv = document.createElement("div");
   thumbDiv.className = "reel-thumb";
-  // Set immediately with Drive's thumbnail CDN — no waiting for onload
   thumbDiv.style.backgroundImage = `url(${thumb(v.id, 800)})`;
   item.appendChild(thumbDiv);
 
-  // ── Progress bar ─────────────────────────────────────────────
+  // ── 2. Video element ──────────────────────────────────────────
+  let videoEl = null, isPaused = false, muted = true;
+  const VIDEO_SRCS = [
+    // drive.usercontent.google.com is Google's current CDN for downloads —
+    // returns actual bytes (not HTML redirect) for publicly shared files
+    `https://drive.usercontent.google.com/download?id=${v.id}&export=download&authuser=0&confirm=t`,
+    `https://drive.google.com/uc?id=${v.id}&export=download&confirm=t`,
+  ];
+  let srcIdx = 0;
+
+  function ensureVideo(preload) {
+    if (videoEl) { videoEl.preload = preload; return; }
+    videoEl = document.createElement("video");
+    videoEl.muted = true;            // REQUIRED for autoplay on iOS/Android
+    videoEl.loop = true;
+    videoEl.playsInline = true;
+    videoEl.setAttribute("webkit-playsinline", "");
+    videoEl.setAttribute("playsinline", "");
+    videoEl.preload = preload;       // "metadata" for lookahead, "auto" for active
+    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
+    videoEl.src = VIDEO_SRCS[0];
+
+    videoEl.addEventListener("canplay", () => {
+      thumbDiv.style.transition = "opacity 0.35s";
+      thumbDiv.style.opacity = "0";
+    }, { once: true });
+
+    videoEl.addEventListener("timeupdate", () => {
+      if (videoEl.duration)
+        progressBar.style.width = `${(videoEl.currentTime / videoEl.duration) * 100}%`;
+    });
+
+    // On error: try next URL variant, then fall back to iframe
+    videoEl.addEventListener("error", function retry() {
+      srcIdx++;
+      if (srcIdx < VIDEO_SRCS.length) {
+        videoEl.src = VIDEO_SRCS[srcIdx];
+        videoEl.load();
+      } else {
+        videoEl.removeEventListener("error", retry);
+        videoEl.remove(); videoEl = null;
+        buildIframeFallback();
+      }
+    });
+
+    item.insertBefore(videoEl, thumbDiv.nextSibling);
+  }
+
+  function buildIframeFallback() {
+    if (item.querySelector(".reel-iframe-clip")) return;
+    const clip = document.createElement("div");
+    clip.className = "reel-iframe-clip";
+    const ifr = document.createElement("iframe");
+    // Clipped iframe hides Drive header/controls; pointer-events:none on
+    // the iframe itself so our overlay still handles gestures
+    ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
+    ifr.allow = "autoplay; fullscreen";
+    ifr.setAttribute("allowfullscreen", "");
+    clip.appendChild(ifr);
+    ifr.addEventListener("load", () => {
+      thumbDiv.style.transition = "opacity 0.5s";
+      thumbDiv.style.opacity = "0";
+    });
+    item.insertBefore(clip, thumbDiv.nextSibling);
+  }
+
+  // Expose lifecycle hooks called by IntersectionObserver
+  item._preload = () => ensureVideo("metadata");  // buffer metadata + first frames
+  item._play = () => {
+    ensureVideo("auto");
+    if (videoEl) videoEl.play().catch(() => {});
+    isPaused = false;
+  };
+  item._pause = () => { if (videoEl) { videoEl.pause(); isPaused = true; } };
+
+  // ── 3. Progress bar ───────────────────────────────────────────
   const progressWrap = document.createElement("div");
   progressWrap.className = "reel-video-progress";
   const progressBar = document.createElement("div");
@@ -1152,82 +1370,11 @@ function buildVideoItem(v, feedIdx) {
   progressWrap.appendChild(progressBar);
   item.appendChild(progressWrap);
 
-  // ═══════════════════════════════════════════════════════════════
-  // PATH A — LOCAL: use proxy → native <video> with full controls
-  // ═══════════════════════════════════════════════════════════════
-  let videoEl = null, muted = true, isPaused = false;
-
-  function buildVideoEl(preloadMode) {
-    if (videoEl) { videoEl.preload = preloadMode; return videoEl; }
-    videoEl = document.createElement("video");
-    videoEl.src = `/video/${v.id}`;   // ← Python proxy, no redirects
-    videoEl.playsInline = true;
-    videoEl.setAttribute("webkit-playsinline", "");
-    videoEl.muted = true;
-    videoEl.loop = true;
-    videoEl.preload = preloadMode;    // "metadata" for preload, "auto" for active
-    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
-    videoEl.addEventListener("canplay", () => {
-      thumbDiv.style.transition = "opacity 0.4s";
-      thumbDiv.style.opacity = "0";
-    }, { once: true });
-    videoEl.addEventListener("timeupdate", () => {
-      if (videoEl.duration)
-        progressBar.style.width = `${(videoEl.currentTime / videoEl.duration) * 100}%`;
-    });
-    // On proxy error: fall back to Drive iframe gracefully
-    videoEl.addEventListener("error", () => {
-      videoEl.remove(); videoEl = null;
-      _buildIframe();
-    }, { once: true });
-    item.insertBefore(videoEl, thumbDiv.nextSibling);
-    return videoEl;
-  }
-
-  function _buildIframe() {
-    if (item.querySelector("iframe")) return;
-    const ifr = document.createElement("iframe");
-    ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
-    ifr.allow = "autoplay; fullscreen";
-    ifr.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:none;z-index:1;";
-    ifr.addEventListener("load", () => {
-      thumbDiv.style.transition = "opacity 0.6s";
-      thumbDiv.style.opacity = "0";
-    });
-    item.insertBefore(ifr, thumbDiv.nextSibling);
-  }
-
-  // _preload: called for N+1 / N+2 — start buffering before user swipes
-  item._preload = IS_LOCAL
-    ? () => buildVideoEl("metadata")   // metadata = first frames + duration, cheap
-    : () => {};                         // iframe path: preload not possible cross-origin
-
-  function playV() {
-    if (!IS_LOCAL) { _buildIframe(); return; }
-    const ve = buildVideoEl("auto");
-    ve.preload = "auto";
-    ve.play().catch(() => {});
-    isPaused = false;
-  }
-  function pauseV()  { if (videoEl) { videoEl.pause(); isPaused = true; } }
-  function unloadV() {
-    if (videoEl) { videoEl.pause(); videoEl.src = ""; videoEl.remove(); videoEl = null; }
-    isPaused = false;
-    thumbDiv.style.opacity = "1";
-    progressBar.style.width = "0";
-  }
-  item._play = playV; item._pause = pauseV; item._unload = unloadV;
-
-  // ═══════════════════════════════════════════════════════════════
-  // CONTROLS (only fully functional on local/proxy path)
-  // ═══════════════════════════════════════════════════════════════
-
-  // Play/pause overlay
+  // ── 4. Play/pause flash overlay (center) ─────────────────────
   const ppOverlay = document.createElement("div");
   ppOverlay.className = "pp-overlay";
   const ppIcon = document.createElement("div");
   ppIcon.className = "pp-icon";
-  ppIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`;
   ppOverlay.appendChild(ppIcon);
   item.appendChild(ppOverlay);
 
@@ -1240,35 +1387,101 @@ function buildVideoItem(v, feedIdx) {
   seekR.innerHTML = `10s <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="3,5 12,12 3,19"/><polygon points="13,5 22,12 13,19"/></svg>`;
   item.appendChild(seekL); item.appendChild(seekR);
 
-  // Mute button
-  const muteBtn = document.createElement("button");
-  muteBtn.className = "reel-mute-btn";
-  const svgMuteOn  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
-  const svgMuteOff = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
-  muteBtn.innerHTML = svgMuteOff;
-  muteBtn.addEventListener("click", e => {
-    e.stopPropagation();
-    if (!videoEl) return;
-    muted = !muted; videoEl.muted = muted;
-    muteBtn.innerHTML = muted ? svgMuteOff : svgMuteOn;
-  });
-  item.appendChild(muteBtn);
-
-  // TikTok touch controls (tap / double-tap / long-press)
-  let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
-
   function flashSeek(el) { el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 700); }
-  function showPP(playing) {
-    ppIcon.innerHTML = playing
-      ? `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
-      : `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`;
+  function showPP(paused) {
+    ppIcon.innerHTML = paused
+      ? `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
     ppOverlay.classList.add("show");
     setTimeout(() => ppOverlay.classList.remove("show"), 750);
   }
 
+  // ── 5. Instagram-style RIGHT SIDEBAR ─────────────────────────
+  const svgMuteOn  = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+  const svgMuteOff = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
+  const sidebar = document.createElement("div");
+  sidebar.className = "reel-sidebar";
+
+  // Mute toggle
+  const muteBtn = document.createElement("button");
+  muteBtn.className = "reel-sidebar-mute";
+  muteBtn.innerHTML = svgMuteOff; // starts muted
+  muteBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    muted = !muted;
+    if (videoEl) videoEl.muted = muted;
+    muteBtn.innerHTML = muted ? svgMuteOff : svgMuteOn;
+  });
+  sidebar.appendChild(muteBtn);
+
+  // Action helper
+  function makeAction(svgInner, count) {
+    const btn = document.createElement("div");
+    btn.className = "reel-action";
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${svgInner}</svg>${count !== undefined ? `<span class="reel-action-num">${count}</span>` : ""}`;
+    return btn;
+  }
+  // Like ❤️
+  const likeBtn = makeAction(`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`, "");
+  let liked = false;
+  likeBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    liked = !liked;
+    likeBtn.querySelector("svg").style.fill = liked ? "#FF3B30" : "none";
+    likeBtn.querySelector("svg").style.stroke = liked ? "#FF3B30" : "white";
+  });
+  sidebar.appendChild(likeBtn);
+  // Comment 💬
+  sidebar.appendChild(makeAction(`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`, ""));
+  // Repost 🔁
+  sidebar.appendChild(makeAction(`<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`, ""));
+  // Send ➤
+  sidebar.appendChild(makeAction(`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`, ""));
+
+  item.appendChild(sidebar);
+
+  // ── 6. Instagram-style BOTTOM FOOTER ─────────────────────────
+  const footer = document.createElement("div");
+  footer.className = "reel-footer";
+
+  const userRow = document.createElement("div");
+  userRow.className = "reel-user-row";
+  const avatar = document.createElement("img");
+  avatar.className = "reel-user-avatar";
+  avatar.src = "kyra.jpg";
+  avatar.onerror = () => { avatar.style.display = "none"; };
+  userRow.appendChild(avatar);
+  const username = document.createElement("span");
+  username.className = "reel-username";
+  username.textContent = "@kyrita.eurotrip";
+  userRow.appendChild(username);
+  const followBtn = document.createElement("button");
+  followBtn.className = "reel-follow-btn";
+  followBtn.textContent = "Seguir";
+  let following = false;
+  followBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    following = !following;
+    followBtn.textContent = following ? "Siguiendo" : "Seguir";
+    followBtn.style.opacity = following ? "0.6" : "1";
+  });
+  userRow.appendChild(followBtn);
+  footer.appendChild(userRow);
+
+  const caption = document.createElement("div");
+  caption.className = "reel-caption";
+  caption.innerHTML = `${flag} <strong>${v.city}</strong> &nbsp;·&nbsp; ${v.date}`;
+  footer.appendChild(caption);
+  item.appendChild(footer);
+
+  // ── 7. Touch controls (tap=play/pause, double-tap=seek, hold=seek) ──
+  let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
+
   item.addEventListener("touchstart", e => {
+    if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
     touchX0 = e.touches[0].clientX;
-    if (!IS_LOCAL || !videoEl) return;
+    if (!videoEl) return;
     holdTimer = setTimeout(() => {
       holdSeeking = true;
       const goLeft = touchX0 < item.offsetWidth / 2;
@@ -1284,14 +1497,15 @@ function buildVideoItem(v, feedIdx) {
   }, { passive: true });
 
   item.addEventListener("touchend", e => {
+    if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
     clearTimeout(holdTimer);
     const wasHold = holdSeeking; holdSeeking = false;
     if (wasHold) return;
-    if (!IS_LOCAL || !videoEl) return;
+    if (!videoEl) return;
     const now = Date.now(), x = e.changedTouches[0].clientX;
     const diff = now - lastTap;
     if (diff < 300 && diff > 30) {
-      // Double-tap seek ±10 s
+      // Double-tap: seek ±10 s
       if (x < item.offsetWidth / 2) { videoEl.currentTime = Math.max(0, videoEl.currentTime - 10); flashSeek(seekL); }
       else { videoEl.currentTime = Math.min(videoEl.duration || 9999, videoEl.currentTime + 10); flashSeek(seekR); }
       lastTap = 0;
@@ -1299,35 +1513,13 @@ function buildVideoItem(v, feedIdx) {
       lastTap = now;
       setTimeout(() => {
         if (Date.now() - now < 280) return;
-        if (isPaused) { playV(); showPP(false); } else { pauseV(); showPP(true); }
+        if (isPaused) { item._play(); showPP(false); }
+        else { item._pause(); showPP(true); }
       }, 300);
     }
   }, { passive: true });
 
-  // City + date info
-  const info = document.createElement("div");
-  info.className = "reel-info";
-  info.innerHTML = `<div class="reel-city"><span class="reel-flag">${flag}</span>${v.city}</div>
-    <div class="reel-meta">${v.date} · ${v.month} 2025</div>`;
-  item.appendChild(info);
-
-  // Right actions
-  const actions = document.createElement("div");
-  actions.className = "reel-actions";
-  actions.innerHTML = `
-    <div class="reel-action-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-      </svg><span class="reel-action-label">Compartir</span>
-    </div>
-    <div class="reel-action-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-      </svg><span class="reel-action-label">${v.city}</span>
-    </div>`;
-  item.appendChild(actions);
-
+  // Scroll hint for first reel
   if (feedIdx === 0) {
     const hint = document.createElement("div");
     hint.className = "scroll-hint";
@@ -1386,11 +1578,28 @@ function buildCarouselItem(data, feedIdx) {
   badge.textContent = `📷 ${data.photos.length} fotos`;
   item.appendChild(badge);
 
-  const info = document.createElement("div");
-  info.className = "reel-info";
-  info.innerHTML = `<div class="reel-city"><span class="reel-flag">${flag}</span>${data.city}</div>
-    <div class="reel-meta">${data.date} · ${data.month} 2025</div>`;
-  item.appendChild(info);
+  // Instagram-style bottom footer (same pattern as buildVideoItem)
+  const footer = document.createElement("div");
+  footer.className = "reel-footer";
+
+  const userRow = document.createElement("div");
+  userRow.className = "reel-user-row";
+  const avatar = document.createElement("img");
+  avatar.className = "reel-user-avatar";
+  avatar.src = "kyra.jpg";
+  avatar.onerror = () => { avatar.style.display = "none"; };
+  userRow.appendChild(avatar);
+  const username = document.createElement("span");
+  username.className = "reel-username";
+  username.textContent = "@kyrita.eurotrip";
+  userRow.appendChild(username);
+  footer.appendChild(userRow);
+
+  const caption = document.createElement("div");
+  caption.className = "reel-caption";
+  caption.innerHTML = `${flag} <strong>${data.city}</strong> &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; 📷 Fotos`;
+  footer.appendChild(caption);
+  item.appendChild(footer);
 
   return item;
 }
