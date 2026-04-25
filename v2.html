@@ -1287,7 +1287,17 @@ function buildReelFeed() {
   if (pendingCarousel) feed.push(pendingCarousel);
   return feed;
 }
-const REEL_FEED = buildReelFeed();
+
+// Fisher-Yates shuffle — for variety: usuario descubre destinos en orden random
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+const REEL_FEED = shuffle(buildReelFeed());
 
 // ═══════════════════════════════════════════════════════════════
 // CLOUDINARY VIDEO CDN
@@ -1299,10 +1309,11 @@ const CLD_FAILED = new Set([
   "1nbitCBiZ_PZzD0lRBbF5iHq85wfUFMvU",   // Florencia (>100 MB)
   "18IbPRoxZ9fYgSyRQxDl785CkexGLzTUU",   // Dresden  (>100 MB)
 ]);
-// q_auto = adaptive quality, f_auto = best codec for browser (h264/av1/vp9),
-// w_720 = mobile-optimized width — vertical 1080→720 saves ~50% bandwidth
+// Simplest URL format = simplest cache key = fastest cache warm-up.
+// Cloudinary transcodes .mov source → .mp4 once and caches at edge CDN.
+// `q_auto:eco` gives smaller files (~3-5 MB vs 10 MB) without big quality loss.
 function cldURL(driveId) {
-  return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/q_auto,f_auto,w_720/${driveId}.mp4`;
+  return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/q_auto:eco/${driveId}.mp4`;
 }
 
 // Estado global de mute — si el user des-mutea un video, todos quedan así
@@ -1325,6 +1336,7 @@ function buildVideoItem(v, feedIdx) {
 function buildCloudinaryVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
+  item.dataset.driveId = v.id;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
   // ── 1. Thumbnail (instant) ──
@@ -1384,7 +1396,8 @@ function buildCloudinaryVideoItem(v, feedIdx) {
     loader.classList.remove("show");
   }
 
-  item._preload = () => ensureVideo("metadata");
+  // Preload levels: "metadata" (headers + 1st frame) | "auto" (full buffer, no play)
+  item._preload = (level = "metadata") => ensureVideo(level);
   item._play = () => {
     ensureVideo("auto");
     videoEl.muted = GLOBAL_MUTED;
@@ -1565,6 +1578,7 @@ function buildCloudinaryVideoItem(v, feedIdx) {
 function buildIframeVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
+  item.dataset.driveId = v.id;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
   const thumbDiv = document.createElement("div");
@@ -1781,11 +1795,13 @@ function renderReels(startIdx) {
         el._play && el._play();
         currentReelIdx = parseInt(el.dataset.idx);
 
-        // ── Preload only N+1 (next reel) ──
-        // Avoid N+2 because each iframe is a full Drive page load — too many
-        // concurrent iframes throttle Drive and kill battery on mobile.
-        const next = allItems[currentReelIdx + 1];
-        if (next && next._preload) next._preload();
+        // ── Aggressive preloading: N+1 fully buffered, N+2 metadata ──
+        // Cloudinary <video> supports real preloading (vs Drive iframe), so by
+        // the time user scrolls to N+1 it's already playable instantly.
+        const next1 = allItems[currentReelIdx + 1];
+        if (next1 && next1._preload) next1._preload("auto");   // full buffer, no play
+        const next2 = allItems[currentReelIdx + 2];
+        if (next2 && next2._preload) next2._preload("metadata");
 
         // Update counter and progress dots
         const vidsSoFar = REEL_FEED.slice(0, currentReelIdx + 1).filter(f => f.type === "video").length;
@@ -1861,15 +1877,14 @@ function renderGrid() {
     cityLabel.textContent = v.city;
     tile.appendChild(cityLabel);
 
-    // Tap → switch to reels at this video
+    // Tap → switch to reels at this video.
+    // Find by drive ID (not array index) because feed is shuffled.
     tile.addEventListener("click", () => {
       switchTab("reels");
       setTimeout(() => {
         const scroll = document.getElementById("reelsScroll");
-        const items = scroll.querySelectorAll(".reel-item");
-        if (items[idx]) {
-          items[idx].scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        const target = scroll.querySelector(`.reel-item[data-drive-id="${v.id}"]`);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 380);
     });
 
