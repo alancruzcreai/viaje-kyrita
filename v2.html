@@ -631,7 +631,57 @@ html,body {
 }
 @keyframes shimmer { from{background-position:200% 0} to{background-position:-200% 0} }
 
-/* (Old <video> player UI removed — Drive iframe owns video controls now) */
+/* ─── VIDEO PLAYER CONTROLS (Cloudinary <video>) ─── */
+.reel-video-progress {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 7; height: 2.5px;
+  background: rgba(255,255,255,0.18);
+}
+.reel-video-progress-bar {
+  height: 100%; background: rgba(255,255,255,0.92); width: 0;
+  transition: width 0.25s linear;
+}
+.pp-overlay {
+  position: absolute; inset: 0; z-index: 6;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.pp-icon {
+  width: 68px; height: 68px; border-radius: 50%;
+  background: rgba(0,0,0,0.42); backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1.5px solid rgba(255,255,255,0.28);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.75);
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease-bounce);
+}
+.pp-icon svg { width: 28px; height: 28px; }
+.pp-overlay.show .pp-icon { opacity: 1; transform: scale(1); }
+.seek-flash {
+  position: absolute; top: 50%; z-index: 6; transform: translateY(-50%);
+  padding: 10px 20px; border-radius: var(--r-pill);
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white; font-size: 14px; font-weight: 700;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.seek-flash.left  { left: 20px; }
+.seek-flash.right { right: 20px; }
+.seek-flash.show  { opacity: 1; }
+/* Loading spinner for Cloudinary buffering */
+.reel-loader {
+  position: absolute; top: 50%; left: 50%; z-index: 5;
+  transform: translate(-50%,-50%);
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.18);
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.2s;
+}
+.reel-loader.show { opacity: 1; }
+@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 /* ── Light mode toggle (in reels topbar) ── */
 .theme-toggle-btn {
   width: 36px; height: 36px; border-radius: 50%;
@@ -1239,91 +1289,170 @@ function buildReelFeed() {
 }
 const REEL_FEED = buildReelFeed();
 
-// ─── Video item builder — Drive iframe with CSS clipping ─────────
-// Strategy: Drive's /preview endpoint is the only reliable path. Direct
-// <video src=drive.google.com> hangs (HTML antivirus page, no error event
-// fires, locks the UI). So we go iframe-only:
-//   • Lazy-insert iframe when reel scrolls into view (Drive autoplays)
-//   • CSS clip hides Drive's header (~50px) and controls bar (~60px)
-//   • Remove iframe when reel leaves view (stops audio + frees memory)
-//   • Tap actions are cosmetic — Drive iframe is opaque, can't be paused
-//     programmatically. Scroll = next video (TikTok-style).
+// ═══════════════════════════════════════════════════════════════
+// CLOUDINARY VIDEO CDN
+// ═══════════════════════════════════════════════════════════════
+// 100/102 videos están en Cloudinary; los 2 fallaron por superar 100 MB
+// (free tier limit) y caen al iframe de Drive como fallback.
+const CLD_CLOUD = "dpmisv6ea";
+const CLD_FAILED = new Set([
+  "1nbitCBiZ_PZzD0lRBbF5iHq85wfUFMvU",   // Florencia (>100 MB)
+  "18IbPRoxZ9fYgSyRQxDl785CkexGLzTUU",   // Dresden  (>100 MB)
+]);
+// q_auto = adaptive quality, f_auto = best codec for browser (h264/av1/vp9),
+// w_720 = mobile-optimized width — vertical 1080→720 saves ~50% bandwidth
+function cldURL(driveId) {
+  return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/q_auto,f_auto,w_720/${driveId}.mp4`;
+}
+
+// Estado global de mute — si el user des-mutea un video, todos quedan así
+let GLOBAL_MUTED = true;
+const allVideoEls = new Set();   // referencias para sincronizar mute/unmute
+
+// ─── Video item builder — Cloudinary <video> with full TikTok controls ───
+// 100 videos: <video> nativo de Cloudinary (autoplay sub-segundo, mute real,
+//             seek, progress bar)
+// 2 videos:   iframe de Drive con CSS clipping (los que excedieron 100 MB)
 function buildVideoItem(v, feedIdx) {
+  // Si el video falló al subir → fallback a iframe de Drive
+  if (CLD_FAILED.has(v.id)) {
+    return buildIframeVideoItem(v, feedIdx);
+  }
+  return buildCloudinaryVideoItem(v, feedIdx);
+}
+
+// ─── Cloudinary <video> implementation (los 100 felices) ─────────
+function buildCloudinaryVideoItem(v, feedIdx) {
   const item = document.createElement("div");
   item.className = "reel-item"; item.dataset.idx = feedIdx;
   const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
 
-  // ── 1. Thumbnail (instant visual, fades when iframe loads) ──
+  // ── 1. Thumbnail (instant) ──
   const thumbDiv = document.createElement("div");
   thumbDiv.className = "reel-thumb";
   thumbDiv.style.backgroundImage = `url(${thumb(v.id, 800)})`;
   item.appendChild(thumbDiv);
 
-  // ── 2. Drive iframe (lazy lifecycle) ────────────────────────
-  let clipEl = null, loadTimer = null;
+  // ── 2. Loading spinner (visible while video buffers) ──
+  const loader = document.createElement("div");
+  loader.className = "reel-loader";
+  item.appendChild(loader);
 
-  function insertIframe() {
-    if (clipEl) return;
-    clipEl = document.createElement("div");
-    clipEl.className = "reel-iframe-clip";
+  // ── 3. <video> element (lazy lifecycle) ─────────────────────
+  let videoEl = null, isPaused = false;
 
-    const ifr = document.createElement("iframe");
-    ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
-    ifr.allow = "autoplay; fullscreen; encrypted-media";
-    ifr.setAttribute("allowfullscreen", "");
-    ifr.setAttribute("loading", "eager");
-    clipEl.appendChild(ifr);
+  function ensureVideo(preload) {
+    if (videoEl) {
+      if (preload === "auto" && videoEl.preload !== "auto") videoEl.preload = "auto";
+      return;
+    }
+    videoEl = document.createElement("video");
+    videoEl.src = cldURL(v.id);
+    videoEl.muted = GLOBAL_MUTED;        // required for autoplay on iOS
+    videoEl.loop = true;
+    videoEl.playsInline = true;
+    videoEl.setAttribute("webkit-playsinline", "");
+    videoEl.setAttribute("playsinline", "");
+    videoEl.preload = preload;
+    videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
 
-    ifr.addEventListener("load", () => {
-      clearTimeout(loadTimer);
-      thumbDiv.style.transition = "opacity 0.45s ease";
+    videoEl.addEventListener("loadeddata", () => {
+      thumbDiv.style.transition = "opacity 0.25s";
       thumbDiv.style.opacity = "0";
+      loader.classList.remove("show");
+    });
+    videoEl.addEventListener("waiting", () => loader.classList.add("show"));
+    videoEl.addEventListener("playing", () => loader.classList.remove("show"));
+    videoEl.addEventListener("timeupdate", () => {
+      if (videoEl.duration) progressBar.style.width = `${(videoEl.currentTime/videoEl.duration)*100}%`;
     });
 
-    // Hard timeout: if Drive doesn't load in 8s, give up gracefully
-    loadTimer = setTimeout(() => {
-      if (clipEl) {
-        thumbDiv.style.opacity = "1";
-        const note = document.createElement("div");
-        note.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:10px 18px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);border-radius:24px;color:white;font-size:13px;z-index:5;";
-        note.textContent = "Cargando lento — desliza ↓ para siguiente";
-        item.appendChild(note);
-        setTimeout(() => note.remove(), 3000);
-      }
-    }, 8000);
-
-    item.insertBefore(clipEl, thumbDiv.nextSibling);
+    allVideoEls.add(videoEl);
+    item.insertBefore(videoEl, thumbDiv.nextSibling);
   }
 
-  function removeIframe() {
-    clearTimeout(loadTimer);
-    if (!clipEl) return;
-    clipEl.remove();
-    clipEl = null;
+  function destroyVideo() {
+    if (!videoEl) return;
+    videoEl.pause();
+    videoEl.removeAttribute("src");
+    videoEl.load();
+    allVideoEls.delete(videoEl);
+    videoEl.remove();
+    videoEl = null;
     thumbDiv.style.transition = "opacity 0.2s";
     thumbDiv.style.opacity = "1";
+    loader.classList.remove("show");
   }
 
-  // Lifecycle hooks called by IntersectionObserver in renderReels():
-  //   _preload — peer reel coming up next, prep iframe
-  //   _play    — this reel is current, ensure iframe present (autoplays)
-  //   _pause   — reel left view, kill iframe (stops audio, frees memory)
-  item._preload = insertIframe;
-  item._play    = insertIframe;
-  item._pause   = removeIframe;
+  item._preload = () => ensureVideo("metadata");
+  item._play = () => {
+    ensureVideo("auto");
+    videoEl.muted = GLOBAL_MUTED;
+    if (videoEl.readyState < 2) loader.classList.add("show");
+    videoEl.play().catch(() => {});
+    isPaused = false;
+  };
+  item._pause = destroyVideo;
 
-  // ── 3. Instagram-style RIGHT SIDEBAR (cosmetic interactions) ──
+  // ── 4. Progress bar ─────────────────────────────────────────
+  const progressWrap = document.createElement("div");
+  progressWrap.className = "reel-video-progress";
+  const progressBar = document.createElement("div");
+  progressBar.className = "reel-video-progress-bar";
+  progressWrap.appendChild(progressBar);
+  item.appendChild(progressWrap);
+
+  // ── 5. Play/pause + seek visual feedback ────────────────────
+  const ppOverlay = document.createElement("div");
+  ppOverlay.className = "pp-overlay";
+  const ppIcon = document.createElement("div"); ppIcon.className = "pp-icon";
+  ppOverlay.appendChild(ppIcon); item.appendChild(ppOverlay);
+
+  const seekL = document.createElement("div");
+  seekL.className = "seek-flash left";
+  seekL.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="11,5 2,12 11,19"/><polygon points="21,5 12,12 21,19"/></svg> 10s`;
+  const seekR = document.createElement("div");
+  seekR.className = "seek-flash right";
+  seekR.innerHTML = `10s <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><polygon points="3,5 12,12 3,19"/><polygon points="13,5 22,12 13,19"/></svg>`;
+  item.appendChild(seekL); item.appendChild(seekR);
+
+  function flashSeek(el) { el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 700); }
+  function showPP(paused) {
+    ppIcon.innerHTML = paused
+      ? `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><polygon points="8,5 19,12 8,19"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="white" width="28" height="28"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+    ppOverlay.classList.add("show");
+    setTimeout(() => ppOverlay.classList.remove("show"), 600);
+  }
+
+  // ── 6. Sidebar (mute, like, comment, repost, send) ──────────
+  const svgMuteOn  = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+  const svgMuteOff = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
   const sidebar = document.createElement("div");
   sidebar.className = "reel-sidebar";
 
-  function makeAction(svgInner, count) {
+  // Mute toggle real — controla TODOS los videos (estado global)
+  const muteBtn = document.createElement("button");
+  muteBtn.className = "reel-sidebar-mute";
+  muteBtn.innerHTML = GLOBAL_MUTED ? svgMuteOff : svgMuteOn;
+  muteBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    GLOBAL_MUTED = !GLOBAL_MUTED;
+    allVideoEls.forEach(ve => ve.muted = GLOBAL_MUTED);
+    document.querySelectorAll(".reel-sidebar-mute").forEach(b => {
+      b.innerHTML = GLOBAL_MUTED ? svgMuteOff : svgMuteOn;
+    });
+  });
+  sidebar.appendChild(muteBtn);
+
+  function makeAction(svgInner) {
     const btn = document.createElement("div");
     btn.className = "reel-action";
-    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${svgInner}</svg>${count !== undefined ? `<span class="reel-action-num">${count}</span>` : ""}`;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${svgInner}</svg>`;
     return btn;
   }
-  // Like ❤️
-  const likeBtn = makeAction(`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`, "");
+  const likeBtn = makeAction(`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`);
   let liked = false;
   likeBtn.addEventListener("click", e => {
     e.stopPropagation();
@@ -1332,29 +1461,25 @@ function buildVideoItem(v, feedIdx) {
     likeBtn.querySelector("svg").style.stroke = liked ? "#FF3B30" : "white";
   });
   sidebar.appendChild(likeBtn);
-  sidebar.appendChild(makeAction(`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`, ""));
-  sidebar.appendChild(makeAction(`<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`, ""));
-  sidebar.appendChild(makeAction(`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`, ""));
+  sidebar.appendChild(makeAction(`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`));
+  sidebar.appendChild(makeAction(`<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`));
+  sidebar.appendChild(makeAction(`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`));
   item.appendChild(sidebar);
 
-  // ── 4. Instagram-style BOTTOM FOOTER ─────────────────────────
+  // ── 7. Footer (avatar + username + follow + caption) ────────
   const footer = document.createElement("div");
   footer.className = "reel-footer";
-
   const userRow = document.createElement("div");
   userRow.className = "reel-user-row";
   const avatar = document.createElement("img");
-  avatar.className = "reel-user-avatar";
-  avatar.src = "kyra.jpg";
+  avatar.className = "reel-user-avatar"; avatar.src = "kyra.jpg";
   avatar.onerror = () => { avatar.style.display = "none"; };
   userRow.appendChild(avatar);
   const username = document.createElement("span");
-  username.className = "reel-username";
-  username.textContent = "@kyrita.eurotrip";
+  username.className = "reel-username"; username.textContent = "@kyrita.eurotrip";
   userRow.appendChild(username);
   const followBtn = document.createElement("button");
-  followBtn.className = "reel-follow-btn";
-  followBtn.textContent = "Seguir";
+  followBtn.className = "reel-follow-btn"; followBtn.textContent = "Seguir";
   let following = false;
   followBtn.addEventListener("click", e => {
     e.stopPropagation();
@@ -1364,20 +1489,44 @@ function buildVideoItem(v, feedIdx) {
   });
   userRow.appendChild(followBtn);
   footer.appendChild(userRow);
-
   const caption = document.createElement("div");
   caption.className = "reel-caption";
   caption.innerHTML = `${flag} <strong>${v.city}</strong> &nbsp;·&nbsp; ${v.date}`;
   footer.appendChild(caption);
   item.appendChild(footer);
 
-  // ── 5. Double-tap to like (TikTok-style heart pulse) ──
-  let lastTap = 0;
+  // ── 8. Touch controls: tap=play/pause, double-tap=like, hold=seek ──
+  let lastTap = 0, holdTimer = null, holdSeeking = false, touchX0 = 0;
+
+  item.addEventListener("touchstart", e => {
+    if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
+    touchX0 = e.touches[0].clientX;
+    if (!videoEl) return;
+    holdTimer = setTimeout(() => {
+      holdSeeking = true;
+      const goLeft = touchX0 < item.offsetWidth / 2;
+      (function loop() {
+        if (!holdSeeking || !videoEl) return;
+        videoEl.currentTime = goLeft
+          ? Math.max(0, videoEl.currentTime - 2)
+          : Math.min(videoEl.duration || 9999, videoEl.currentTime + 2);
+        goLeft ? flashSeek(seekL) : flashSeek(seekR);
+        setTimeout(loop, 200);
+      })();
+    }, 500);
+  }, { passive: true });
+
   item.addEventListener("touchend", e => {
     if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
-    const now = Date.now();
-    if (now - lastTap < 300 && now - lastTap > 30) {
-      // Double-tap: animate big heart in center + activate like
+    clearTimeout(holdTimer);
+    const wasHold = holdSeeking; holdSeeking = false;
+    if (wasHold) return;
+
+    const now = Date.now(), x = e.changedTouches[0].clientX;
+    const diff = now - lastTap;
+
+    if (diff < 300 && diff > 30) {
+      // Double-tap: like + heart pulse
       if (!liked) likeBtn.click();
       const heart = document.createElement("div");
       heart.style.cssText = "position:absolute;top:50%;left:50%;z-index:6;pointer-events:none;animation:heartPulse 0.7s ease-out forwards;";
@@ -1387,6 +1536,18 @@ function buildVideoItem(v, feedIdx) {
       lastTap = 0;
     } else {
       lastTap = now;
+      // Single tap (delayed to allow double-tap detection): play/pause
+      setTimeout(() => {
+        if (Date.now() - now < 280) return;     // canceled by double-tap
+        if (!videoEl) return;
+        if (isPaused) {
+          videoEl.play().catch(() => {});
+          isPaused = false; showPP(false);
+        } else {
+          videoEl.pause();
+          isPaused = true; showPP(true);
+        }
+      }, 300);
     }
   }, { passive: true });
 
@@ -1397,6 +1558,109 @@ function buildVideoItem(v, feedIdx) {
     hint.innerHTML = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
     item.appendChild(hint);
   }
+  return item;
+}
+
+// ─── Iframe fallback for the 2 videos that exceeded 100 MB upload limit ──
+function buildIframeVideoItem(v, feedIdx) {
+  const item = document.createElement("div");
+  item.className = "reel-item"; item.dataset.idx = feedIdx;
+  const cm = COUNTRY_META[v.country] || {}, flag = cm.flag || "🌍";
+
+  const thumbDiv = document.createElement("div");
+  thumbDiv.className = "reel-thumb";
+  thumbDiv.style.backgroundImage = `url(${thumb(v.id, 800)})`;
+  item.appendChild(thumbDiv);
+
+  let clipEl = null;
+  function insertIframe() {
+    if (clipEl) return;
+    clipEl = document.createElement("div");
+    clipEl.className = "reel-iframe-clip";
+    const ifr = document.createElement("iframe");
+    ifr.src = `https://drive.google.com/file/d/${v.id}/preview`;
+    ifr.allow = "autoplay; fullscreen; encrypted-media";
+    ifr.setAttribute("allowfullscreen", "");
+    clipEl.appendChild(ifr);
+    ifr.addEventListener("load", () => {
+      thumbDiv.style.transition = "opacity 0.45s ease";
+      thumbDiv.style.opacity = "0";
+    });
+    item.insertBefore(clipEl, thumbDiv.nextSibling);
+  }
+  function removeIframe() {
+    if (!clipEl) return;
+    clipEl.remove(); clipEl = null;
+    thumbDiv.style.opacity = "1";
+  }
+  item._preload = insertIframe;
+  item._play = insertIframe;
+  item._pause = removeIframe;
+
+  // Sidebar (sin mute — Drive iframe es opaco)
+  const sidebar = document.createElement("div");
+  sidebar.className = "reel-sidebar";
+  function makeAction(svgInner) {
+    const btn = document.createElement("div");
+    btn.className = "reel-action";
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${svgInner}</svg>`;
+    return btn;
+  }
+  const likeBtn = makeAction(`<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>`);
+  let liked = false;
+  likeBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    liked = !liked;
+    likeBtn.querySelector("svg").style.fill = liked ? "#FF3B30" : "none";
+    likeBtn.querySelector("svg").style.stroke = liked ? "#FF3B30" : "white";
+  });
+  sidebar.appendChild(likeBtn);
+  sidebar.appendChild(makeAction(`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`));
+  sidebar.appendChild(makeAction(`<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`));
+  sidebar.appendChild(makeAction(`<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>`));
+  item.appendChild(sidebar);
+
+  // Footer
+  const footer = document.createElement("div");
+  footer.className = "reel-footer";
+  const userRow = document.createElement("div");
+  userRow.className = "reel-user-row";
+  const avatar = document.createElement("img");
+  avatar.className = "reel-user-avatar"; avatar.src = "kyra.jpg";
+  avatar.onerror = () => { avatar.style.display = "none"; };
+  userRow.appendChild(avatar);
+  const username = document.createElement("span");
+  username.className = "reel-username"; username.textContent = "@kyrita.eurotrip";
+  userRow.appendChild(username);
+  const followBtn = document.createElement("button");
+  followBtn.className = "reel-follow-btn"; followBtn.textContent = "Seguir";
+  followBtn.addEventListener("click", e => e.stopPropagation());
+  userRow.appendChild(followBtn);
+  footer.appendChild(userRow);
+  const caption = document.createElement("div");
+  caption.className = "reel-caption";
+  caption.innerHTML = `${flag} <strong>${v.city}</strong> &nbsp;·&nbsp; ${v.date}`;
+  footer.appendChild(caption);
+  item.appendChild(footer);
+
+  // Doble tap = like
+  let lastTap = 0;
+  item.addEventListener("touchend", e => {
+    if (e.target.closest(".reel-sidebar, .reel-follow-btn")) return;
+    const now = Date.now();
+    if (now - lastTap < 300 && now - lastTap > 30) {
+      if (!liked) likeBtn.click();
+      const heart = document.createElement("div");
+      heart.style.cssText = "position:absolute;top:50%;left:50%;z-index:6;pointer-events:none;animation:heartPulse 0.7s ease-out forwards;";
+      heart.innerHTML = `<svg width="100" height="100" viewBox="0 0 24 24" fill="#FF3B30"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      item.appendChild(heart);
+      setTimeout(() => heart.remove(), 700);
+      lastTap = 0;
+    } else {
+      lastTap = now;
+    }
+  }, { passive: true });
+
   return item;
 }
 
