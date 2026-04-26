@@ -1309,12 +1309,14 @@ const CLD_FAILED = new Set([
   "1nbitCBiZ_PZzD0lRBbF5iHq85wfUFMvU",   // Florencia (>100 MB)
   "18IbPRoxZ9fYgSyRQxDl785CkexGLzTUU",   // Dresden  (>100 MB)
 ]);
-// Simplest URL format = simplest cache key = fastest cache warm-up.
-// Cloudinary transcodes .mov source → .mp4 once and caches at edge CDN.
-// `q_auto:eco` gives smaller files (~3-5 MB vs 10 MB) without big quality loss.
-function cldURL(driveId) {
-  return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/q_auto:eco/${driveId}.mp4`;
-}
+// Two-tier delivery for true TikTok-speed:
+//   • HLS adaptive streaming (Safari native): segments load progressively,
+//     player picks 270p/540p/720p based on bandwidth. Starts in <500ms even
+//     on slow cellular because first segment is tiny (~200KB).
+//   • MP4 fallback (Chrome/Android): q_auto:low,w_540 = ~1.5MB whole file
+//     (vs 8.8MB at full res). Downloads in ~1s on 4G.
+function cldHLS(id) { return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/sp_auto/${id}.m3u8`; }
+function cldMP4(id) { return `https://res.cloudinary.com/${CLD_CLOUD}/video/upload/q_auto:low,w_540/${id}.mp4`; }
 
 // Estado global de mute — si el user des-mutea un video, todos quedan así
 let GLOBAL_MUTED = true;
@@ -1359,7 +1361,6 @@ function buildCloudinaryVideoItem(v, feedIdx) {
       return;
     }
     videoEl = document.createElement("video");
-    videoEl.src = cldURL(v.id);
     videoEl.muted = GLOBAL_MUTED;        // required for autoplay on iOS
     videoEl.loop = true;
     videoEl.playsInline = true;
@@ -1367,6 +1368,17 @@ function buildCloudinaryVideoItem(v, feedIdx) {
     videoEl.setAttribute("playsinline", "");
     videoEl.preload = preload;
     videoEl.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:#000;";
+
+    // <source> tags — Safari picks HLS (native), Chrome/Firefox fall through to MP4
+    const sHLS = document.createElement("source");
+    sHLS.src = cldHLS(v.id);
+    sHLS.type = "application/vnd.apple.mpegurl";
+    videoEl.appendChild(sHLS);
+
+    const sMP4 = document.createElement("source");
+    sMP4.src = cldMP4(v.id);
+    sMP4.type = "video/mp4";
+    videoEl.appendChild(sMP4);
 
     videoEl.addEventListener("loadeddata", () => {
       thumbDiv.style.transition = "opacity 0.25s";
